@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import Card from "@/components/cards/Card";
+import Button from "@/components/ui/Button";
 import HealthScoreOverview from "@/components/dashboard/restaurant-health/HealthScoreOverview";
 import HealthParameterCard from "@/components/dashboard/restaurant-health/HealthParameterCard";
 import HealthInsightsPanel from "@/components/dashboard/restaurant-health/HealthInsightsPanel";
@@ -6,7 +11,97 @@ import WeeklyTrendChart from "@/components/dashboard/restaurant-health/WeeklyTre
 import HealthBreakdown from "@/components/dashboard/restaurant-health/HealthBreakdown";
 import { healthParameters } from "@/components/dashboard/restaurant-health/restaurantHealthData";
 
+type AIInsightPayload = {
+  summary: string;
+  strengths: string[];
+  issues: string[];
+  recommendations: string[];
+  predictedScore: number | null;
+};
+
+const defaultInsightPayload: AIInsightPayload = {
+  summary: "",
+  strengths: [],
+  issues: [],
+  recommendations: [],
+  predictedScore: null,
+};
+
+function normalizeInsightPayload(payload: unknown): AIInsightPayload {
+  if (payload && typeof payload === "object") {
+    const root = payload as Record<string, unknown>;
+    const analysis = root.analysis && typeof root.analysis === "object" ? (root.analysis as Record<string, unknown>) : root;
+
+    return {
+      summary: typeof analysis.summary === "string" ? analysis.summary : "",
+      strengths: Array.isArray(analysis.strengths)
+        ? analysis.strengths.filter((item): item is string => typeof item === "string")
+        : [],
+      issues: Array.isArray(analysis.issues)
+        ? analysis.issues.filter((item): item is string => typeof item === "string")
+        : [],
+      recommendations: Array.isArray(analysis.recommendations)
+        ? analysis.recommendations.filter((item): item is string => typeof item === "string")
+        : [],
+      predictedScore:
+        typeof analysis.predictedScore === "number"
+          ? analysis.predictedScore
+          : typeof analysis.predicted_health_score === "number"
+            ? analysis.predicted_health_score
+            : null,
+    };
+  }
+
+  return defaultInsightPayload;
+}
+
 export default function RestaurantHealthDashboard() {
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [insightError, setInsightError] = useState<string | null>(null);
+  const [insightData, setInsightData] = useState<AIInsightPayload | null>(null);
+
+  async function handleGenerateAIInsights() {
+    setIsGeneratingInsights(true);
+    setInsightError(null);
+    setInsightData(null);
+
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "restaurant-health",
+          data: {
+            overallScore: 92,
+            customerSatisfaction: 94,
+            serviceSpeed: 88,
+            inventoryHealth: 91,
+            staffEfficiency: 90,
+            foodWaste: 12,
+            dailySales: 18500,
+            ordersToday: 324,
+          },
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Unable to generate AI insights right now.");
+      }
+
+      setInsightData(normalizeInsightPayload(payload));
+    } catch (error) {
+      setInsightError(
+        error instanceof Error ? error.message : "Unable to generate AI insights right now.",
+      );
+    } finally {
+      setIsGeneratingInsights(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header>
@@ -18,7 +113,22 @@ export default function RestaurantHealthDashboard() {
         </p>
       </header>
 
-      <section aria-label="Overall health score">
+      <section aria-label="Overall health score" className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Restaurant Health Score</h2>
+            <p className="text-sm text-muted">A live snapshot of your restaurant's operations.</p>
+          </div>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleGenerateAIInsights}
+            disabled={isGeneratingInsights}
+            className="w-full sm:w-auto"
+          >
+            {isGeneratingInsights ? "Generating..." : "✨ Generate AI Insights"}
+          </Button>
+        </div>
         <HealthScoreOverview />
       </section>
 
@@ -29,6 +139,127 @@ export default function RestaurantHealthDashboard() {
             <HealthParameterCard key={param.id} {...param} />
           ))}
         </div>
+      </section>
+
+      <section aria-label="AI insights" className="space-y-4">
+        {insightError ? (
+          <Card className="border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
+            {insightError}
+          </Card>
+        ) : null}
+
+        {isGeneratingInsights ? (
+          <Card hover className="border border-emerald/20 bg-gradient-to-br from-emerald/10 to-transparent p-5">
+            <div className="flex items-center gap-3 text-emerald">
+              <span className="text-xl">🤖</span>
+              <div>
+                <p className="font-semibold">AI is analyzing restaurant performance...</p>
+                <p className="mt-1 text-sm text-muted">
+                  Checking customer satisfaction, inventory, sales, and staffing health.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2 text-sm text-white/80">
+              <p>• Checking customer satisfaction...</p>
+              <p>• Checking inventory...</p>
+              <p>• Analyzing sales...</p>
+              <p>• Generating recommendations...</p>
+            </div>
+          </Card>
+        ) : null}
+
+        {insightData ? (
+          <div className="space-y-4 animate-fade-in-up">
+            <Card className="border border-emerald/20 bg-gradient-to-br from-emerald/10 to-transparent p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald">
+                🧠 Overall Summary
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-white/90">
+                {insightData.summary || "No summary was returned by the AI service."}
+              </p>
+            </Card>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="border border-emerald/15 bg-background/60 p-4">
+                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald">
+                  ✅ Strengths
+                </p>
+                <div className="mt-4 space-y-2">
+                  {insightData.strengths.length > 0 ? (
+                    insightData.strengths.map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-emerald/15 bg-emerald/10 px-3 py-2 text-sm text-white/90"
+                      >
+                        • {item}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted">No strengths were returned.</p>
+                  )}
+                </div>
+              </Card>
+
+              <Card className="border border-rose-500/20 bg-background/60 p-4">
+                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-rose-300">
+                  ⚠ Issues
+                </p>
+                <div className="mt-4 space-y-2">
+                  {insightData.issues.length > 0 ? (
+                    insightData.issues.map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-100/90"
+                      >
+                        • {item}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted">No issues were returned.</p>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            <Card className="border border-white/10 bg-background/60 p-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald">
+                💡 AI Recommendations
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {insightData.recommendations.length > 0 ? (
+                  insightData.recommendations.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-2xl border border-white/10 bg-surface/70 p-3 text-sm leading-relaxed text-white/90"
+                    >
+                      • {item}
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-white/10 p-3 text-sm text-muted">
+                    No recommendations were generated.
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card className="border border-emerald/15 bg-gradient-to-r from-emerald/10 to-transparent p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-muted">
+                    📈 Predicted Health Score
+                  </p>
+                  <p className="mt-1 text-sm text-muted">
+                    Estimated after implementing the recommendations.
+                  </p>
+                </div>
+                <div className="rounded-full border border-emerald/20 bg-emerald/10 px-4 py-2 text-lg font-semibold text-emerald">
+                  {insightData.predictedScore ?? "—"}/100
+                </div>
+              </div>
+            </Card>
+          </div>
+        ) : null}
       </section>
 
       <section aria-label="Health insights">
