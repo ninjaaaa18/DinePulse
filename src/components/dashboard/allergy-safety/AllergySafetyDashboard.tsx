@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Card from "@/components/cards/Card";
+import Button from "@/components/ui/Button";
 import {
   adviceCards,
   alternativeCards,
@@ -23,10 +24,60 @@ const adviceToneStyles = {
   success: "border-emerald/25 bg-emerald/10",
 };
 
+type AIAnalysisPayload = {
+  summary: string;
+  warnings: string[];
+  healthRisks: string[];
+  safeAlternatives: string[];
+  riskLevel: string;
+  improvedScore: number | null;
+};
+
+const defaultAIAnalysis: AIAnalysisPayload = {
+  summary: "",
+  warnings: [],
+  healthRisks: [],
+  safeAlternatives: [],
+  riskLevel: "",
+  improvedScore: null,
+};
+
+function normalizeAIAnalysisPayload(payload: unknown): AIAnalysisPayload {
+  if (payload && typeof payload === "object") {
+    const root = payload as Record<string, unknown>;
+    const analysis = root.analysis && typeof root.analysis === "object" ? (root.analysis as Record<string, unknown>) : root;
+
+    return {
+      summary: typeof analysis.summary === "string" ? analysis.summary : "",
+      warnings: Array.isArray(analysis.warnings)
+        ? analysis.warnings.filter((item): item is string => typeof item === "string")
+        : [],
+      healthRisks: Array.isArray(analysis.healthRisks)
+        ? analysis.healthRisks.filter((item): item is string => typeof item === "string")
+        : [],
+      safeAlternatives: Array.isArray(analysis.safeAlternatives)
+        ? analysis.safeAlternatives.filter((item): item is string => typeof item === "string")
+        : [],
+      riskLevel: typeof analysis.riskLevel === "string" ? analysis.riskLevel : "",
+      improvedScore:
+        typeof analysis.improvedScore === "number"
+          ? analysis.improvedScore
+          : typeof analysis.score === "number"
+            ? analysis.score
+            : null,
+    };
+  }
+
+  return defaultAIAnalysis;
+}
+
 export default function AllergySafetyDashboard() {
   const [selectedConditions, setSelectedConditions] = useState<string[]>(["Diabetes"]);
   const [selectedDiets, setSelectedDiets] = useState<string[]>(["Vegetarian"]);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>(["Peanut"]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisData, setAnalysisData] = useState<AIAnalysisPayload | null>(null);
 
   const toggleSelection = (
     value: string,
@@ -39,6 +90,51 @@ export default function AllergySafetyDashboard() {
         : [...current, value],
     );
   };
+
+  async function handleAnalyzeWithAI() {
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    setAnalysisData(null);
+
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "dietary-safety",
+          data: {
+            customer: {
+              name: "John",
+              age: 28,
+              diet: "Vegetarian",
+              medicalConditions: ["Diabetes"],
+              allergies: ["Peanuts", "Lactose"],
+            },
+            meal: {
+              name: "Veg Combo Meal",
+              items: ["Veg Burger", "French Fries", "Chocolate Milkshake"],
+            },
+          },
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || "Unable to analyze dietary safety.");
+      }
+
+      setAnalysisData(normalizeAIAnalysisPayload(payload));
+    } catch (error) {
+      setAnalysisError(
+        error instanceof Error ? error.message : "Unable to analyze dietary safety.",
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -209,14 +305,20 @@ export default function AllergySafetyDashboard() {
 
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <Card hover className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-white">Safety Analysis</h2>
               <p className="text-sm text-muted">Health and allergy risk overview.</p>
             </div>
-            <div className="rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1 text-sm text-emerald">
-              Safe
-            </div>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleAnalyzeWithAI}
+              disabled={isAnalyzing}
+              className="w-full sm:w-auto"
+            >
+              {isAnalyzing ? "Analyzing..." : "🛡️ Analyze with AI"}
+            </Button>
           </div>
 
           <div className="rounded-2xl border border-emerald/20 bg-emerald/10 p-5">
@@ -295,6 +397,84 @@ export default function AllergySafetyDashboard() {
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card hover className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">AI Analysis</h2>
+            <p className="text-sm text-muted">Structured insights from the dietary safety model.</p>
+          </div>
+
+          {isAnalyzing ? (
+            <div className="rounded-2xl border border-emerald/20 bg-emerald/10 p-5 text-sm text-emerald">
+              <p className="font-medium">Checking ingredients…</p>
+              <p className="mt-2 text-emerald/80">Checking allergies…</p>
+              <p className="mt-2 text-emerald/80">Generating recommendations…</p>
+            </div>
+          ) : analysisError ? (
+            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-200">
+              <p className="font-medium">Unable to produce AI analysis.</p>
+              <p className="mt-2 text-rose-100/80">{analysisError}</p>
+            </div>
+          ) : analysisData ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-emerald/20 bg-emerald/10 p-4">
+                <p className="text-sm text-emerald">Overall summary</p>
+                <p className="mt-2 text-sm text-white">{analysisData.summary}</p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-background/60 p-4">
+                  <p className="text-sm font-semibold text-white">Allergy warnings</p>
+                  <ul className="mt-2 space-y-2 text-sm text-muted">
+                    {analysisData.warnings.length > 0 ? (
+                      analysisData.warnings.map((warning) => <li key={warning}>• {warning}</li>)
+                    ) : (
+                      <li>• No major allergy risks detected.</li>
+                    )}
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-background/60 p-4">
+                  <p className="text-sm font-semibold text-white">Health risks</p>
+                  <ul className="mt-2 space-y-2 text-sm text-muted">
+                    {analysisData.healthRisks.length > 0 ? (
+                      analysisData.healthRisks.map((risk) => <li key={risk}>• {risk}</li>)
+                    ) : (
+                      <li>• No major health concerns noted.</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-background/60 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Risk level</p>
+                    <p className="mt-1 text-sm text-muted">{analysisData.riskLevel}</p>
+                  </div>
+                  <div className="rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1 text-sm text-emerald">
+                    Score {analysisData.improvedScore ?? "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-background/60 p-4">
+                <p className="text-sm font-semibold text-white">Safe alternatives</p>
+                <ul className="mt-2 space-y-2 text-sm text-muted">
+                  {analysisData.safeAlternatives.length > 0 ? (
+                    analysisData.safeAlternatives.map((alternative) => <li key={alternative}>• {alternative}</li>)
+                  ) : (
+                    <li>• No alternatives suggested.</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-background/60 p-5 text-sm text-muted">
+              <p>Use the analysis button to generate a tailored AI view of the selected meal.</p>
+            </div>
+          )}
         </Card>
 
         <Card hover className="space-y-4">
