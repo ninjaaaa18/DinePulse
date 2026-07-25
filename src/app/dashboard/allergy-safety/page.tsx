@@ -1,13 +1,7 @@
-import SectionPlaceholder from "@/components/dashboard/SectionPlaceholder";
+import AllergySafetyDashboard from "@/components/dashboard/allergy-safety/AllergySafetyDashboard";
 
 export const metadata = { title: "Allergy Safety — DinePulse" };
 
 export default function AllergySafetyPage() {
-  return (
-    <SectionPlaceholder
-      title="Allergy Safety"
-      description="Manage allergen detection, alerts, and dietary compliance."
-      icon="🛡️"
-    />
-  );
+  return <AllergySafetyDashboard />;
 }
