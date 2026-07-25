@@ -13,93 +13,60 @@ import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import { nutritionBreakdown } from "@/components/dashboard/customer-health/customerHealthData";
 
-type AnalysisSectionKey =
-  | "overallSummary"
-  | "positivePoints"
-  | "healthRisks"
-  | "aiRecommendations"
-  | "improvedMealScore"
-  | "suggestedMealChanges";
-
 type AnalysisPayload = {
-  overallSummary: string[];
-  positivePoints: string[];
-  healthRisks: string[];
-  aiRecommendations: string[];
-  improvedMealScore: string[];
-  suggestedMealChanges: string[];
-};
-
-const sectionLabels: Record<AnalysisSectionKey, string> = {
-  overallSummary: "Overall Summary",
-  positivePoints: "Positive Points",
-  healthRisks: "Health Risks",
-  aiRecommendations: "AI Recommendations",
-  improvedMealScore: "Improved Meal Score",
-  suggestedMealChanges: "Suggested Meal Changes",
+  summary: string;
+  positives: string[];
+  risks: string[];
+  recommendations: string[];
+  improvedScore: number | null;
 };
 
 const defaultAnalysis: AnalysisPayload = {
-  overallSummary: [],
-  positivePoints: [],
-  healthRisks: [],
-  aiRecommendations: [],
-  improvedMealScore: [],
-  suggestedMealChanges: [],
+  summary: "",
+  positives: [],
+  risks: [],
+  recommendations: [],
+  improvedScore: null,
 };
 
-function parseAIAnalysis(rawResponse: string): AnalysisPayload {
-  const normalized = rawResponse.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\r/g, "");
-  const lines = normalized
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
-  const sections: AnalysisPayload = { ...defaultAnalysis };
-  let currentSection: AnalysisSectionKey | null = null;
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
 
-  for (const line of lines) {
-    const headingMatch = line.match(
-      /^(Overall Summary|Positive Points|Health Risks|AI Recommendations|Improved Meal Score|Suggested Meal Changes)\s*[:\-]?$/i,
+function normalizeAnalysisPayload(payload: unknown): AnalysisPayload {
+  if (payload && typeof payload === "object") {
+    const root = payload as Record<string, unknown>;
+    const analysis = root.analysis && typeof root.analysis === "object" ? (root.analysis as Record<string, unknown>) : root;
+
+    const summary = typeof analysis.summary === "string" ? analysis.summary : "";
+    const positives = normalizeStringArray(
+      analysis.positives ?? analysis.positivePoints ?? analysis.positives,
     );
+    const risks = normalizeStringArray(analysis.risks ?? analysis.healthRisks ?? []);
+    const recommendations = normalizeStringArray(
+      analysis.recommendations ?? analysis.aiRecommendations ?? [],
+    );
+    const improvedScore =
+      typeof analysis.improvedScore === "number"
+        ? analysis.improvedScore
+        : typeof analysis.score === "number"
+          ? analysis.score
+          : null;
 
-    if (headingMatch) {
-      const label = headingMatch[1].toLowerCase().replace(/\s+/g, "");
-      const sectionKey =
-        label === "overallsummary"
-          ? "overallSummary"
-          : label === "positivepoints"
-            ? "positivePoints"
-            : label === "healthrisks"
-              ? "healthRisks"
-              : label === "airecommendations"
-                ? "aiRecommendations"
-                : label === "improvedmealscore"
-                  ? "improvedMealScore"
-                  : "suggestedMealChanges";
-      currentSection = sectionKey;
-      continue;
-    }
-
-    const cleaned = line.replace(/^[-*•]\s*/, "");
-
-    if (!cleaned) {
-      continue;
-    }
-
-    if (!currentSection) {
-      sections.overallSummary.push(cleaned);
-      continue;
-    }
-
-    sections[currentSection].push(cleaned);
+    return {
+      summary,
+      positives,
+      risks,
+      recommendations,
+      improvedScore,
+    };
   }
 
-  if (sections.overallSummary.length === 0 && normalized) {
-    sections.overallSummary = [normalized];
-  }
-
-  return sections;
+  return defaultAnalysis;
 }
 
 export default function CustomerHealthDashboard() {
@@ -121,7 +88,7 @@ export default function CustomerHealthDashboard() {
         body: JSON.stringify({
           type: "meal-analysis",
           prompt:
-            "Analyze this meal using the provided nutrition values. Return the answer in sections with headings: Overall Summary, Positive Points, Health Risks, AI Recommendations, Improved Meal Score, and Suggested Meal Changes. Keep it concise and actionable.",
+            "Analyze this meal using the provided nutrition values. Keep the response concise and actionable.",
           data: {
             meal: ["Chicken Burger", "French Fries", "Coke"],
             nutrition: {
@@ -143,7 +110,7 @@ export default function CustomerHealthDashboard() {
         throw new Error(payload?.error || "Unable to analyze the meal right now.");
       }
 
-      setAnalysisResult(parseAIAnalysis(payload.response || ""));
+      setAnalysisResult(normalizeAnalysisPayload(payload));
     } catch (error) {
       setAnalysisError(
         error instanceof Error ? error.message : "Unable to analyze the meal right now.",
@@ -214,57 +181,110 @@ export default function CustomerHealthDashboard() {
           ) : null}
 
           {analysisResult ? (
-            <div className="grid gap-4 xl:grid-cols-2">
-              {Object.entries(sectionLabels).map(([key, label]) => {
-                const sectionKey = key as AnalysisSectionKey;
-                const items = analysisResult[sectionKey];
-
-                if (sectionKey === "improvedMealScore") {
-                  return (
-                    <div
-                      key={sectionKey}
-                      className="rounded-2xl border border-white/10 bg-background/60 p-4"
-                    >
-                      <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-muted">
-                        {label}
-                      </h3>
-                      <div className="mt-3 space-y-2">
-                        {items.length > 0 ? (
-                          items.map((item) => (
-                            <p key={item} className="text-sm text-white/90">
-                              {item}
-                            </p>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted">No score details available.</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={sectionKey}
-                    className="rounded-2xl border border-white/10 bg-background/60 p-4"
-                  >
-                    <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-muted">
-                      {label}
-                    </h3>
-                    <ul className="mt-3 space-y-2">
-                      {items.length > 0 ? (
-                        items.map((item) => (
-                          <li key={item} className="text-sm leading-relaxed text-white/90">
-                            • {item}
-                          </li>
-                        ))
-                      ) : (
-                        <li className="text-sm text-muted">No details available yet.</li>
-                      )}
-                    </ul>
+            <div className="space-y-4 animate-fade-in-up">
+              <Card className="border border-emerald/20 bg-gradient-to-br from-emerald/10 to-transparent p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald">
+                      Overall Summary
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-white/90">
+                      {analysisResult.summary || "No summary was returned by the AI service."}
+                    </p>
                   </div>
-                );
-              })}
+                  <span className="rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1 text-sm text-emerald">
+                    AI Insight
+                  </span>
+                </div>
+              </Card>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                <Card className="border border-emerald/15 bg-background/60 p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald">
+                      Positive Points
+                    </span>
+                  </div>
+                  <ul className="mt-4 space-y-2">
+                    {analysisResult.positives.length > 0 ? (
+                      analysisResult.positives.map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-start gap-2 rounded-xl border border-emerald/15 bg-emerald/10 px-3 py-2 text-sm text-white/90"
+                        >
+                          <span className="mt-0.5 text-emerald">✓</span>
+                          <span>{item}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-sm text-muted">No positive points were identified.</li>
+                    )}
+                  </ul>
+                </Card>
+
+                <Card className="border border-rose-500/20 bg-background/60 p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-300">
+                      Health Risks
+                    </span>
+                  </div>
+                  <ul className="mt-4 space-y-2">
+                    {analysisResult.risks.length > 0 ? (
+                      analysisResult.risks.map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-100/90"
+                        >
+                          <span className="mt-0.5 text-rose-300">⚠</span>
+                          <span>{item}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-sm text-muted">No major health risks were flagged.</li>
+                    )}
+                  </ul>
+                </Card>
+              </div>
+
+              <Card className="border border-white/10 bg-background/60 p-4">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald">
+                    AI Recommendations
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {analysisResult.recommendations.length > 0 ? (
+                    analysisResult.recommendations.map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-white/10 bg-surface/70 p-3 text-sm leading-relaxed text-white/90"
+                      >
+                        • {item}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-white/10 p-3 text-sm text-muted">
+                      No recommendations were generated.
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              <Card className="border border-emerald/15 bg-gradient-to-r from-emerald/10 to-transparent p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-muted">
+                      Improved Meal Score
+                    </p>
+                    <p className="mt-1 text-sm text-muted">
+                      Estimated improvement after applying AI suggestions.
+                    </p>
+                  </div>
+                  <div className="rounded-full border border-emerald/20 bg-emerald/10 px-4 py-2 text-lg font-semibold text-emerald">
+                    {analysisResult.improvedScore ?? "—"}/100
+                  </div>
+                </div>
+              </Card>
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-white/10 bg-background/40 p-6 text-sm text-muted">
