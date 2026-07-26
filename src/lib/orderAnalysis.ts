@@ -1,4 +1,9 @@
-import { syncAnalyticsToSupabase, syncInventoryToSupabase } from "./supabase";
+import {
+  getFallbackRecipe,
+  getRecipeIngredientsForOrder,
+  syncAnalyticsToSupabase,
+  syncInventoryToSupabase,
+} from "./supabase";
 
 export type OrderAnalysisItem = {
   id: string;
@@ -151,39 +156,7 @@ function markInventoryOrderApplied(orderKey: string) {
 }
 
 function getIngredientRecipe(itemName: string, itemId: string) {
-  const normalizedName = `${itemName} ${itemId}`.toLowerCase();
-
-  if (normalizedName.includes("burger")) {
-    return [
-      { id: "chicken-patty", quantity: 1 },
-      { id: "burger-bun", quantity: 1 },
-      { id: "cheese-slice", quantity: 1 },
-      { id: "lettuce", quantity: 1 },
-      { id: "sauce", quantity: 1 },
-    ];
-  }
-
-  if (normalizedName.includes("fries")) {
-    return [
-      { id: "potato", quantity: 1 },
-      { id: "cooking-oil", quantity: 1 },
-      { id: "salt", quantity: 1 },
-    ];
-  }
-
-  if (normalizedName.includes("coke") || normalizedName.includes("cola") || normalizedName.includes("drink")) {
-    return [{ id: "soft-drink-bottle", quantity: 1 }];
-  }
-
-  if (normalizedName.includes("salad")) {
-    return [
-      { id: "lettuce", quantity: 1 },
-      { id: "tomato", quantity: 1 },
-      { id: "cucumber", quantity: 1 },
-    ];
-  }
-
-  return [];
+  return getFallbackRecipe(itemName, itemId);
 }
 
 function buildTrendSeries(previousSeries: AnalyticsChartPoint[], nextValue: number, fallbackLabel: string) {
@@ -445,10 +418,44 @@ export function buildInventoryStateFromOrderContext(
   });
 
   persistInventoryState(nextInventory);
-  syncInventoryToSupabase(nextInventory).catch((err) => {
-    console.warn("[Inventory Sync] Background sync to Supabase failed:", err);
-  });
   markInventoryOrderApplied(orderKey);
+
+  // Background recipe deduction via Supabase recipes table
+  getRecipeIngredientsForOrder(context.items)
+    .then((dbUsageMap) => {
+      if (!dbUsageMap || dbUsageMap.size === 0) return;
+
+      const dbNextInventory = baseState.map((ingredient) => {
+        const consumedQuantity = dbUsageMap.get(ingredient.id) ?? 0;
+        const currentStock = Math.max(0, ingredient.currentStock - consumedQuantity);
+        const remainingPercent =
+          ingredient.initialStock > 0
+            ? Math.round((currentStock / ingredient.initialStock) * 100)
+            : 0;
+        const status = getInventoryStatus(currentStock, ingredient.threshold, remainingPercent);
+
+        return {
+          ...ingredient,
+          currentStock,
+          stockChange: -consumedQuantity,
+          remainingPercent,
+          status,
+          warning: getInventoryWarning(status, currentStock, ingredient.threshold),
+        };
+      });
+
+      persistInventoryState(dbNextInventory);
+      syncInventoryToSupabase(dbNextInventory).catch((err) => {
+        console.warn("[Inventory Recipe Sync] DB recipe sync failed:", err);
+      });
+    })
+    .catch((err) => {
+      console.warn("[Inventory Recipe Sync] Async recipe fetch error, keeping default fallback:", err);
+      syncInventoryToSupabase(nextInventory).catch((e) => {
+        console.warn("[Inventory Sync] Fallback sync error:", e);
+      });
+    });
+
   return nextInventory;
 }
 

@@ -73,6 +73,7 @@ export type Database = {
 
 export type RestaurantRow = {
   id: string;
+  user_id: string | null;
   slug: string | null;
   name: string;
   cuisine: string | null;
@@ -90,6 +91,7 @@ export type RestaurantRow = {
 
 export type RestaurantInsert = {
   id?: string;
+  user_id?: string | null;
   slug?: string | null;
   name: string;
   cuisine?: string | null;
@@ -107,6 +109,7 @@ export type RestaurantInsert = {
 
 export type RestaurantUpdate = {
   id?: string;
+  user_id?: string | null;
   slug?: string | null;
   name?: string;
   cuisine?: string | null;

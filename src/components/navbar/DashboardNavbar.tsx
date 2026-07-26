@@ -4,6 +4,7 @@ import { useState } from "react";
 import SearchBar from "@/components/navbar/SearchBar";
 import NotificationDrawer from "@/components/navbar/NotificationDrawer";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 type Props = {
   onMenuToggle: () => void;
@@ -12,7 +13,12 @@ type Props = {
 export default function DashboardNavbar({ onMenuToggle }: Props) {
   const [search, setSearch] = useState("");
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { unreadCount } = useNotifications();
+  const { user, restaurant, signOut } = useAuth();
+
+  const displayName =
+    restaurant?.name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Admin";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-white/5 bg-background/80 px-4 backdrop-blur-xl sm:px-6">
@@ -46,18 +52,37 @@ export default function DashboardNavbar({ onMenuToggle }: Props) {
           )}
         </button>
 
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-1.5 pr-3 pl-1.5 transition-all duration-200 hover:border-emerald/30 hover:bg-emerald/10"
-          aria-label="Profile menu"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald/20 text-sm">
-            👤
-          </span>
-          <span className="hidden text-sm font-medium text-white sm:block">
-            Admin
-          </span>
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-1.5 pr-3 pl-1.5 transition-all duration-200 hover:border-emerald/30 hover:bg-emerald/10"
+            aria-label="Profile menu"
+            onClick={() => setProfileOpen(!profileOpen)}
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald/20 text-sm">
+              👤
+            </span>
+            <span className="hidden text-sm font-medium text-white sm:block truncate max-w-[140px]">
+              {displayName}
+            </span>
+          </button>
+
+          {profileOpen ? (
+            <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-white/10 bg-surface/95 p-2 shadow-xl backdrop-blur-xl z-50">
+              <div className="px-3 py-2 text-xs border-b border-white/10">
+                <p className="font-semibold text-white truncate">{displayName}</p>
+                <p className="text-muted truncate">{user?.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-rose-300 hover:bg-rose-500/10 transition-colors"
+              >
+                🚪 Sign Out
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
       <NotificationDrawer open={notificationDrawerOpen} onClose={() => setNotificationDrawerOpen(false)} />
     </header>

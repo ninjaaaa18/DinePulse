@@ -1,4 +1,6 @@
 import { getInventory, upsertInventoryItem } from "./db";
+import { supabase } from "./client";
+import { getOrCreateRestaurantForUser } from "./auth";
 import {
   baseInventoryState,
   getInventoryStatus,
@@ -42,8 +44,12 @@ function mapRowToIngredient(row: InventoryRow): InventoryIngredient {
 /**
  * Maps an InventoryIngredient model to a Supabase InventoryInsert object.
  */
-function mapIngredientToInsert(ingredient: InventoryIngredient): InventoryInsert {
+function mapIngredientToInsert(
+  ingredient: InventoryIngredient,
+  restaurantId?: string | null
+): InventoryInsert {
   return {
+    restaurant_id: restaurantId || null,
     ingredient_key: ingredient.id,
     name: ingredient.name,
     current_stock: ingredient.currentStock,
@@ -55,13 +61,27 @@ function mapIngredientToInsert(ingredient: InventoryIngredient): InventoryInsert
   };
 }
 
+async function getActiveRestaurantId(): Promise<string | null> {
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData?.user) {
+      const { data: userRest } = await getOrCreateRestaurantForUser(authData.user);
+      return userRest?.id || null;
+    }
+  } catch {
+    // Ignore auth error in fallback
+  }
+  return null;
+}
+
 /**
  * Fetches inventory from Supabase. Seeds base inventory if table is empty.
  * Returns null if Supabase is unavailable or fails.
  */
 export async function fetchInventoryFromSupabase(): Promise<InventoryIngredient[] | null> {
   try {
-    const { data, error } = await getInventory();
+    const restaurantId = await getActiveRestaurantId();
+    const { data, error } = await getInventory(restaurantId || undefined);
     if (error) {
       console.warn("[Supabase Inventory] Fetch failed, fallback active:", error.message);
       return null;
@@ -73,7 +93,7 @@ export async function fetchInventoryFromSupabase(): Promise<InventoryIngredient[
 
     // If database table is empty, seed with initial base inventory
     const seedPromises = baseInventoryState.map((item) =>
-      upsertInventoryItem(mapIngredientToInsert(item))
+      upsertInventoryItem(mapIngredientToInsert(item, restaurantId))
     );
     await Promise.all(seedPromises);
     return baseInventoryState;
@@ -90,8 +110,9 @@ export async function syncInventoryToSupabase(
   inventory: InventoryIngredient[]
 ): Promise<{ success: boolean; error?: Error }> {
   try {
+    const restaurantId = await getActiveRestaurantId();
     const upsertPromises = inventory.map((item) =>
-      upsertInventoryItem(mapIngredientToInsert(item))
+      upsertInventoryItem(mapIngredientToInsert(item, restaurantId))
     );
     const results = await Promise.all(upsertPromises);
     const hasError = results.some((res) => res.error);
@@ -129,8 +150,6 @@ export async function loadInventoryWithFallback(): Promise<InventoryIngredient[]
 export async function saveInventoryWithFallback(
   inventory: InventoryIngredient[]
 ): Promise<void> {
-  // Always update local storage first
   persistInventoryState(inventory);
-  // Asynchronously sync to Supabase
   await syncInventoryToSupabase(inventory);
 }

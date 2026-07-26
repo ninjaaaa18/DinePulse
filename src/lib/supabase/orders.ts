@@ -1,4 +1,6 @@
 import { createOrder } from "./db";
+import { supabase } from "./client";
+import { getOrCreateRestaurantForUser } from "./auth";
 import type { OrderAnalysisContext } from "@/lib/orderAnalysis";
 import type { OrderInsert, OrderItemInsert } from "./types";
 
@@ -9,14 +11,14 @@ function isUUID(value: string | undefined): boolean {
 }
 
 /**
- * Phase 1: Persist an Order and its Order Items to Supabase PostgreSQL.
- * Falls back gracefully if Supabase is unavailable, unconfigured, or encounters a database error.
+ * Persist an Order and its Order Items to Supabase PostgreSQL.
+ * Associates record with current authenticated restaurant.
+ * Falls back gracefully if Supabase is unavailable.
  */
 export async function saveOrderToSupabase(
   context: OrderAnalysisContext
 ): Promise<{ success: boolean; orderId?: string; error?: Error }> {
   try {
-    // Generate valid UUID for order primary key if not already a UUID
     const orderId = isUUID(context.orderId)
       ? (context.orderId as string)
       : typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -26,9 +28,19 @@ export async function saveOrderToSupabase(
     const shortId = orderId ? orderId.slice(0, 8).toUpperCase() : Date.now().toString().slice(-6);
     const orderNumber = `ORD-${shortId}`;
 
-    const restaurantId = isUUID(context.selectedRestaurantId)
+    let restaurantId = isUUID(context.selectedRestaurantId)
       ? context.selectedRestaurantId
       : null;
+
+    if (!restaurantId) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        const { data: userRest } = await getOrCreateRestaurantForUser(authData.user);
+        if (userRest) {
+          restaurantId = userRest.id;
+        }
+      }
+    }
 
     const orderPayload: OrderInsert = {
       id: orderId,

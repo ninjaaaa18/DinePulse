@@ -4,443 +4,24 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
-import { applyOrderToInventory, type OrderAnalysisContext } from "@/lib/orderAnalysis";
-import { saveOrderToSupabase } from "@/lib/supabase";
+import {
+  applyOrderToInventory,
+  type OrderAnalysisContext,
+} from "@/lib/orderAnalysis";
+import {
+  fallbackRestaurants,
+  loadMenuItemsWithFallback,
+  loadRestaurantsWithFallback,
+  saveOrderToSupabase,
+  type MenuItem,
+  type Restaurant,
+} from "@/lib/supabase";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
-
-type MenuItem = {
-  id: string;
-  name: string;
-  price: number;
-  calories: number;
-  protein: number;
-  carbohydrates: number;
-  fat: number;
-  sugar: number;
-  sodium: number;
-  allergens: string[];
-  image: string;
-  badge: string;
-  badgeIcon: string;
-};
-
-type Restaurant = {
-  id: string;
-  name: string;
-  cuisine: string;
-  description: string;
-  deliveryTime: string;
-  logo: string;
-  items: MenuItem[];
-};
 
 type CartItem = MenuItem & {
   quantity: number;
 };
-
-const restaurants: Restaurant[] = [
-  {
-    id: "burger-hub",
-    name: "Burger Hub",
-    cuisine: "American Grill",
-    description: "Classic burgers with balanced sides and premium toppings.",
-    deliveryTime: "18–25 min",
-    logo: "🍔",
-    items: [
-      {
-        id: "smoke-burger",
-        name: "Smoky Stack Burger",
-        price: 249,
-        calories: 740,
-        protein: 34,
-        carbohydrates: 58,
-        fat: 36,
-        sugar: 12,
-        sodium: 920,
-        allergens: ["Gluten", "Milk", "Egg"],
-        image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
-        badge: "⭐ Chef Recommended",
-        badgeIcon: "⭐",
-      },
-      {
-        id: "avocado-blt",
-        name: "Avocado Crunch Burger",
-        price: 279,
-        calories: 690,
-        protein: 31,
-        carbohydrates: 54,
-        fat: 33,
-        sugar: 9,
-        sodium: 860,
-        allergens: ["Gluten", "Milk"],
-        image: "https://images.unsplash.com/photo-1520072959219-c595dc870360?auto=format&fit=crop&w=900&q=80",
-        badge: "🔥 Most Popular",
-        badgeIcon: "🔥",
-      },
-      {
-        id: "loaded-fries",
-        name: "Crispy Loaded Fries",
-        price: 149,
-        calories: 520,
-        protein: 12,
-        carbohydrates: 62,
-        fat: 24,
-        sugar: 2,
-        sodium: 730,
-        allergens: ["Milk"],
-        image: "https://images.unsplash.com/photo-1576107232684-2f0f8d0456f1?auto=format&fit=crop&w=900&q=80",
-        badge: "🆕 New Item",
-        badgeIcon: "🆕",
-      },
-      {
-        id: "grill-chicken-bowl",
-        name: "Grill Chicken Bowl",
-        price: 219,
-        calories: 610,
-        protein: 41,
-        carbohydrates: 49,
-        fat: 21,
-        sugar: 8,
-        sodium: 760,
-        allergens: ["None"],
-        image: "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=900&q=80",
-        badge: "🥗 Healthy Choice",
-        badgeIcon: "🥗",
-      },
-      {
-        id: "mint-lemonade",
-        name: "Mint Lemonade",
-        price: 89,
-        calories: 170,
-        protein: 1,
-        carbohydrates: 41,
-        fat: 0,
-        sugar: 35,
-        sodium: 85,
-        allergens: ["None"],
-        image: "https://images.unsplash.com/photo-1523374228107-6e44bd2b524e?auto=format&fit=crop&w=900&q=80",
-        badge: "🆕 New Item",
-        badgeIcon: "🆕",
-      },
-      {
-        id: "double-stack",
-        name: "Double Stack Combo",
-        price: 329,
-        calories: 930,
-        protein: 46,
-        carbohydrates: 76,
-        fat: 44,
-        sugar: 13,
-        sodium: 1020,
-        allergens: ["Gluten", "Milk", "Egg"],
-        image: "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=80",
-        badge: "🔥 Most Popular",
-        badgeIcon: "🔥",
-      },
-    ],
-  },
-  {
-    id: "healthy-bites",
-    name: "Healthy Bites",
-    cuisine: "Fresh Wellness",
-    description: "Bright bowls, protein-packed plates, and light sides.",
-    deliveryTime: "15–20 min",
-    logo: "🥗",
-    items: [
-      {
-        id: "green-protein-bowl",
-        name: "Green Protein Bowl",
-        price: 199,
-        calories: 560,
-        protein: 37,
-        carbohydrates: 42,
-        fat: 22,
-        sugar: 7,
-        sodium: 680,
-        allergens: ["Sesame"],
-        image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80",
-        badge: "🥗 Healthy Choice",
-        badgeIcon: "🥗",
-      },
-      {
-        id: "super-salad-wrap",
-        name: "Super Salad Wrap",
-        price: 179,
-        calories: 480,
-        protein: 24,
-        carbohydrates: 38,
-        fat: 20,
-        sugar: 6,
-        sodium: 590,
-        allergens: ["Gluten", "Sesame"],
-        image: "https://images.unsplash.com/photo-1546793665-c74683f339c1?auto=format&fit=crop&w=900&q=80",
-        badge: "⭐ Chef Recommended",
-        badgeIcon: "⭐",
-      },
-      {
-        id: "harvest-soup",
-        name: "Harvest Soup Cup",
-        price: 129,
-        calories: 260,
-        protein: 9,
-        carbohydrates: 30,
-        fat: 10,
-        sugar: 8,
-        sodium: 540,
-        allergens: ["None"],
-        image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
-        badge: "🆕 New Item",
-        badgeIcon: "🆕",
-      },
-      {
-        id: "sea-salt-kale",
-        name: "Sea Salt Kale Chips",
-        price: 119,
-        calories: 220,
-        protein: 4,
-        carbohydrates: 18,
-        fat: 14,
-        sugar: 3,
-        sodium: 420,
-        allergens: ["None"],
-        image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80",
-        badge: "🔥 Most Popular",
-        badgeIcon: "🔥",
-      },
-      {
-        id: "berry-boost",
-        name: "Berry Boost Smoothie",
-        price: 149,
-        calories: 290,
-        protein: 11,
-        carbohydrates: 44,
-        fat: 8,
-        sugar: 28,
-        sodium: 120,
-        allergens: ["Milk"],
-        image: "https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=900&q=80",
-        badge: "🥗 Healthy Choice",
-        badgeIcon: "🥗",
-      },
-      {
-        id: "grain-power-plate",
-        name: "Grain Power Plate",
-        price: 229,
-        calories: 640,
-        protein: 29,
-        carbohydrates: 71,
-        fat: 24,
-        sugar: 9,
-        sodium: 710,
-        allergens: ["Sesame"],
-        image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80",
-        badge: "⭐ Chef Recommended",
-        badgeIcon: "⭐",
-      },
-    ],
-  },
-  {
-    id: "italian-kitchen",
-    name: "Italian Kitchen",
-    cuisine: "Mediterranean Pasta",
-    description: "Comforting pasta dishes and artisan flatbreads.",
-    deliveryTime: "20–30 min",
-    logo: "🍝",
-    items: [
-      {
-        id: "margherita-pasta",
-        name: "Margherita Pasta",
-        price: 239,
-        calories: 720,
-        protein: 26,
-        carbohydrates: 94,
-        fat: 28,
-        sugar: 8,
-        sodium: 860,
-        allergens: ["Gluten", "Milk"],
-        image: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=900&q=80",
-        badge: "⭐ Chef Recommended",
-        badgeIcon: "⭐",
-      },
-      {
-        id: "pesto-penne",
-        name: "Pesto Penne Bowl",
-        price: 269,
-        calories: 780,
-        protein: 24,
-        carbohydrates: 81,
-        fat: 35,
-        sugar: 7,
-        sodium: 770,
-        allergens: ["Gluten", "Milk", "Tree Nuts"],
-        image: "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=900&q=80",
-        badge: "🔥 Most Popular",
-        badgeIcon: "🔥",
-      },
-      {
-        id: "caprese-flatbread",
-        name: "Caprese Flatbread",
-        price: 199,
-        calories: 660,
-        protein: 21,
-        carbohydrates: 72,
-        fat: 30,
-        sugar: 6,
-        sodium: 740,
-        allergens: ["Gluten", "Milk"],
-        image: "https://images.unsplash.com/photo-1528137871618-79d2761e3fd5?auto=format&fit=crop&w=900&q=80",
-        badge: "🆕 New Item",
-        badgeIcon: "🆕",
-      },
-      {
-        id: "tomato-basil-soup",
-        name: "Tomato Basil Soup",
-        price: 129,
-        calories: 230,
-        protein: 7,
-        carbohydrates: 30,
-        fat: 9,
-        sugar: 10,
-        sodium: 610,
-        allergens: ["Milk"],
-        image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
-        badge: "🥗 Healthy Choice",
-        badgeIcon: "🥗",
-      },
-      {
-        id: "tiramisu-cup",
-        name: "Tiramisu Cup",
-        price: 159,
-        calories: 310,
-        protein: 6,
-        carbohydrates: 39,
-        fat: 14,
-        sugar: 23,
-        sodium: 120,
-        allergens: ["Gluten", "Egg", "Milk"],
-        image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=900&q=80",
-        badge: "🔥 Most Popular",
-        badgeIcon: "🔥",
-      },
-      {
-        id: "truffle-gnocchi",
-        name: "Truffle Gnocchi",
-        price: 289,
-        calories: 850,
-        protein: 20,
-        carbohydrates: 108,
-        fat: 39,
-        sugar: 9,
-        sodium: 890,
-        allergens: ["Gluten", "Milk"],
-        image: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=900&q=80",
-        badge: "⭐ Chef Recommended",
-        badgeIcon: "⭐",
-      },
-    ],
-  },
-  {
-    id: "south-spice",
-    name: "South Spice",
-    cuisine: "Indian Street Food",
-    description: "Spiced curries, rice plates, and vibrant appetizers.",
-    deliveryTime: "22–28 min",
-    logo: "🍛",
-    items: [
-      {
-        id: "tandoori-platter",
-        name: "Tandoori Platter",
-        price: 269,
-        calories: 710,
-        protein: 39,
-        carbohydrates: 52,
-        fat: 32,
-        sugar: 7,
-        sodium: 780,
-        allergens: ["None"],
-        image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80",
-        badge: "🔥 Most Popular",
-        badgeIcon: "🔥",
-      },
-      {
-        id: "coconut-curry",
-        name: "Coconut Curry Bowl",
-        price: 229,
-        calories: 670,
-        protein: 24,
-        carbohydrates: 61,
-        fat: 29,
-        sugar: 9,
-        sodium: 690,
-        allergens: ["Milk"],
-        image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=900&q=80",
-        badge: "⭐ Chef Recommended",
-        badgeIcon: "⭐",
-      },
-      {
-        id: "chili-naan",
-        name: "Chili Garlic Naan",
-        price: 119,
-        calories: 280,
-        protein: 8,
-        carbohydrates: 42,
-        fat: 8,
-        sugar: 4,
-        sodium: 560,
-        allergens: ["Gluten", "Milk"],
-        image: "https://images.unsplash.com/photo-1517433670267-08bbd4be890f?auto=format&fit=crop&w=900&q=80",
-        badge: "🆕 New Item",
-        badgeIcon: "🆕",
-      },
-      {
-        id: "mint-chutney-wrap",
-        name: "Mint Chutney Wrap",
-        price: 169,
-        calories: 430,
-        protein: 19,
-        carbohydrates: 39,
-        fat: 18,
-        sugar: 5,
-        sodium: 620,
-        allergens: ["Gluten"],
-        image: "https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=900&q=80",
-        badge: "🥗 Healthy Choice",
-        badgeIcon: "🥗",
-      },
-      {
-        id: "masala-fries",
-        name: "Masala Fries",
-        price: 129,
-        calories: 500,
-        protein: 8,
-        carbohydrates: 58,
-        fat: 24,
-        sugar: 2,
-        sodium: 760,
-        allergens: ["None"],
-        image: "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=900&q=80",
-        badge: "🔥 Most Popular",
-        badgeIcon: "🔥",
-      },
-      {
-        id: "mango-lassi",
-        name: "Mango Lassi",
-        price: 109,
-        calories: 320,
-        protein: 10,
-        carbohydrates: 44,
-        fat: 12,
-        sugar: 31,
-        sodium: 180,
-        allergens: ["Milk"],
-        image: "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=900&q=80",
-        badge: "🥗 Healthy Choice",
-        badgeIcon: "🥗",
-      },
-    ],
-  },
-];
 
 const analysisSteps = [
   { label: "Order received", description: "Your basket is ready for review" },
@@ -472,14 +53,64 @@ export default function OrderFoodDashboard() {
   const router = useRouter();
   const { setActiveOrder } = useActiveOrder();
   const { notify } = useNotifications();
-  const [selectedRestaurant, setSelectedRestaurant] = useState(restaurants[0].id);
+  const [restaurantsList, setRestaurantsList] = useState<Restaurant[]>(fallbackRestaurants);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<string>(fallbackRestaurants[0].id);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(fallbackRestaurants[0].items);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(true);
+  const [loadingMenu, setLoadingMenu] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [analysisMessage, setAnalysisMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
   const [processingContext, setProcessingContext] = useState<OrderAnalysisContext | null>(null);
 
-  const restaurant = restaurants.find((item) => item.id === selectedRestaurant) ?? restaurants[0];
+  // Load restaurants on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      const fetched = await loadRestaurantsWithFallback();
+      if (!isMounted) return;
+
+      setRestaurantsList(fetched);
+      if (fetched.length > 0) {
+        setSelectedRestaurant((prev) =>
+          fetched.some((r) => r.id === prev || r.slug === prev) ? prev : fetched[0].id
+        );
+      }
+      setLoadingRestaurants(false);
+    }
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Load menu items when selectedRestaurant changes
+  useEffect(() => {
+    let isMounted = true;
+    async function loadMenu() {
+      setLoadingMenu(true);
+      const matchingFallback =
+        fallbackRestaurants.find((r) => r.id === selectedRestaurant || r.slug === selectedRestaurant)?.items ||
+        fallbackRestaurants[0].items;
+
+      const items = await loadMenuItemsWithFallback(selectedRestaurant, matchingFallback);
+      if (!isMounted) return;
+
+      setMenuItems(items);
+      setLoadingMenu(false);
+    }
+
+    loadMenu();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedRestaurant]);
+
+  const restaurant =
+    restaurantsList.find((item) => item.id === selectedRestaurant || item.slug === selectedRestaurant) ??
+    restaurantsList[0];
 
   const subtotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -759,8 +390,8 @@ export default function OrderFoodDashboard() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {restaurants.map((option) => {
-            const active = selectedRestaurant === option.id;
+          {restaurantsList.map((option) => {
+            const active = selectedRestaurant === option.id || selectedRestaurant === option.slug;
             return (
               <button
                 key={option.id}
@@ -804,9 +435,21 @@ export default function OrderFoodDashboard() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              {restaurant.items.map((item) => {
-                const inCart = cart.find((entry) => entry.id === item.id);
-                return (
+              {loadingMenu ? (
+                <div className="col-span-2 flex items-center justify-center p-8 text-muted">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald border-t-transparent" />
+                    <span>Loading menu items...</span>
+                  </div>
+                </div>
+              ) : menuItems.length === 0 ? (
+                <div className="col-span-2 rounded-2xl border border-dashed border-white/10 p-8 text-center text-muted">
+                  No menu items available for this restaurant.
+                </div>
+              ) : (
+                menuItems.map((item) => {
+                  const inCart = cart.find((entry) => entry.id === item.id);
+                  return (
                   <div
                     key={item.id}
                     className="group overflow-hidden rounded-[24px] border border-white/10 bg-background/60 transition-all duration-300 hover:-translate-y-1 hover:border-emerald/25 hover:shadow-xl hover:shadow-emerald/10"
@@ -870,8 +513,9 @@ export default function OrderFoodDashboard() {
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
+          </div>
           </Card>
         </div>
 

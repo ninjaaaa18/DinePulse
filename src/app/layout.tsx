@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     "Monitor restaurant performance, improve customer satisfaction, provide healthy meal insights, and ensure allergy-safe dining — all from one intelligent platform.",
 };
 
+import { AuthProvider } from "@/components/auth/AuthProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +31,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

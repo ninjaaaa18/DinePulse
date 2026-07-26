@@ -1,4 +1,6 @@
 import { getLatestAnalytics, recordAnalyticsSnapshot } from "./db";
+import { supabase } from "./client";
+import { getOrCreateRestaurantForUser } from "./auth";
 import {
   getDefaultAnalyticsSnapshot,
   getStoredAnalyticsSnapshot,
@@ -35,8 +37,12 @@ function mapRowToSnapshot(row: AnalyticsRow): AnalyticsSnapshot {
 /**
  * Maps an AnalyticsSnapshot model to a Supabase AnalyticsInsert object.
  */
-function mapSnapshotToInsert(snapshot: AnalyticsSnapshot): AnalyticsInsert {
+function mapSnapshotToInsert(
+  snapshot: AnalyticsSnapshot,
+  restaurantId?: string | null
+): AnalyticsInsert {
   return {
+    restaurant_id: restaurantId || null,
     date: new Date().toISOString().split("T")[0],
     total_orders: snapshot.totalOrders,
     revenue: snapshot.revenue,
@@ -57,13 +63,27 @@ function mapSnapshotToInsert(snapshot: AnalyticsSnapshot): AnalyticsInsert {
   };
 }
 
+async function getActiveRestaurantId(): Promise<string | null> {
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData?.user) {
+      const { data: userRest } = await getOrCreateRestaurantForUser(authData.user);
+      return userRest?.id || null;
+    }
+  } catch {
+    // Ignore auth error in fallback
+  }
+  return null;
+}
+
 /**
  * Fetches the latest analytics snapshot from Supabase.
  * Returns null if Supabase is unavailable or encounters an error.
  */
 export async function fetchAnalyticsFromSupabase(): Promise<AnalyticsSnapshot | null> {
   try {
-    const { data, error } = await getLatestAnalytics(undefined, 1);
+    const restaurantId = await getActiveRestaurantId();
+    const { data, error } = await getLatestAnalytics(restaurantId || undefined, 1);
     if (error) {
       console.warn("[Supabase Analytics] Fetch failed, fallback active:", error.message);
       return null;
@@ -88,7 +108,8 @@ export async function syncAnalyticsToSupabase(
   snapshot: AnalyticsSnapshot
 ): Promise<{ success: boolean; error?: Error }> {
   try {
-    const payload = mapSnapshotToInsert(snapshot);
+    const restaurantId = await getActiveRestaurantId();
+    const payload = mapSnapshotToInsert(snapshot, restaurantId);
     const { error } = await recordAnalyticsSnapshot(payload);
 
     if (error) {
