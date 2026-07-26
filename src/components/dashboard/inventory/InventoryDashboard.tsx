@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import Card from "@/components/cards/Card";
-import { buildInventoryStateFromOrderContext, getStoredInventoryState, loadPersistedOrderAnalysisContext, parseOrderAnalysisContext, type InventoryIngredient } from "@/lib/orderAnalysis";
+import { getStoredInventoryState, type InventoryIngredient } from "@/lib/orderAnalysis";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
+import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
 function getStatusClasses(status: InventoryIngredient["status"]) {
   switch (status) {
@@ -32,37 +33,38 @@ function getProgressColor(status: InventoryIngredient["status"]) {
 }
 
 export default function InventoryDashboard() {
-  const searchParams = useSearchParams();
+  const { activeOrder } = useActiveOrder();
+  const { notify } = useNotifications();
   const [inventory, setInventory] = useState<InventoryIngredient[]>(() => getStoredInventoryState());
   const [warningCount, setWarningCount] = useState(0);
-  const appliedOrderSignatureRef = useRef<string | null>(null);
-
-  const orderContext = useMemo(
-    () => parseOrderAnalysisContext(searchParams.get("orderData")) ?? loadPersistedOrderAnalysisContext(),
-    [searchParams],
-  );
 
   useEffect(() => {
-    if (!orderContext) {
+    const nextInventory = getStoredInventoryState();
+    setInventory(nextInventory);
+
+    if (!activeOrder) {
       return;
     }
 
-    const orderSignature = `${orderContext.selectedRestaurantId}:${orderContext.items
-      .map((item) => `${item.id}:${item.quantity}`)
-      .join("|")}`;
-
-    if (appliedOrderSignatureRef.current === orderSignature) {
-      return;
-    }
-
-    appliedOrderSignatureRef.current = orderSignature;
-
-    setInventory((previous) => {
-      const nextInventory = buildInventoryStateFromOrderContext(orderContext, previous);
-      setWarningCount(nextInventory.filter((item) => item.warning).length);
-      return nextInventory;
+    notify({
+      icon: "□",
+      title: "Inventory updated",
+      description: "Ingredient stock has been adjusted for the completed order.",
+      category: "Inventory",
+      severity: "information",
+      dedupeKey: `inventory-update-${activeOrder.orderId}`,
     });
-  }, [orderContext]);
+    nextInventory.filter((item) => item.warning).forEach((item) => {
+      notify({
+        icon: "!",
+        title: `${item.name} stock is low`,
+        description: item.warning ?? "Restock this ingredient soon.",
+        category: "Inventory",
+        severity: item.status === "Critical" ? "critical" : "warning",
+        dedupeKey: `low-stock-${activeOrder.orderId}-${item.id}`,
+      });
+    });
+  }, [activeOrder, notify]);
 
   useEffect(() => {
     setWarningCount(inventory.filter((item) => item.warning).length);

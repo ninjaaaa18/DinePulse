@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
-import { applyOrderToInventory, persistOrderAnalysisContext, serializeOrderAnalysisContext, type OrderAnalysisContext } from "@/lib/orderAnalysis";
+import { applyOrderToInventory, type OrderAnalysisContext } from "@/lib/orderAnalysis";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
+import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
 type MenuItem = {
   id: string;
@@ -467,6 +469,8 @@ function formatPrice(value: number) {
 
 export default function OrderFoodDashboard() {
   const router = useRouter();
+  const { setActiveOrder } = useActiveOrder();
+  const { notify } = useNotifications();
   const [selectedRestaurant, setSelectedRestaurant] = useState(restaurants[0].id);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [analysisMessage, setAnalysisMessage] = useState("");
@@ -532,9 +536,7 @@ export default function OrderFoodDashboard() {
       if (stepCount >= analysisSteps.length) {
         window.clearInterval(intervalId);
         window.setTimeout(() => {
-          router.push(
-            `/dashboard/customer-health?orderData=${serializeOrderAnalysisContext(processingContext)}`,
-          );
+          router.push("/dashboard/customer-health");
         }, 600);
       }
     }, 500);
@@ -549,6 +551,9 @@ export default function OrderFoodDashboard() {
     }
 
     const context: OrderAnalysisContext = {
+      orderId: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       selectedRestaurantId: selectedRestaurant,
       selectedRestaurantName: restaurant.name,
       restaurantCuisine: restaurant.cuisine,
@@ -559,8 +564,66 @@ export default function OrderFoodDashboard() {
       averageMealScore,
     };
 
-    persistOrderAnalysisContext(context);
-    applyOrderToInventory(context);
+    setActiveOrder(context);
+    const updatedInventory = applyOrderToInventory(context);
+    const lowStockItems = updatedInventory.filter((item) => item.warning);
+    notify({
+      icon: "✓",
+      title: "Order completed",
+      description: `${context.items.length} dish${context.items.length === 1 ? "" : "es"} from ${restaurant.name} is ready for analysis.`,
+      category: "Orders",
+      severity: "success",
+      dedupeKey: `order-completed-${context.orderId}`,
+    });
+    notify({
+      icon: "₹",
+      title: "Analytics updated",
+      description: `Revenue increased by ₹${subtotal.toLocaleString("en-IN")} from the latest order.`,
+      category: "Analytics",
+      severity: "information",
+      dedupeKey: `analytics-update-${context.orderId}`,
+    });
+    notify({
+      icon: "□",
+      title: "Inventory updated",
+      description: "Ingredient stock has been adjusted for the completed order.",
+      category: "Inventory",
+      severity: "information",
+      dedupeKey: `inventory-update-${context.orderId}`,
+    });
+    lowStockItems.forEach((item) => {
+      notify({
+        icon: "!",
+        title: `${item.name} stock is low`,
+        description: item.warning ?? "Restock this ingredient soon.",
+        category: "Inventory",
+        severity: item.status === "Critical" ? "critical" : "warning",
+        dedupeKey: `low-stock-${context.orderId}-${item.id}`,
+      });
+    });
+    if (averageMealScore < 80) {
+      notify({
+        icon: "!",
+        title: "High-calorie meal detected",
+        description: `This order has a meal health score of ${averageMealScore}/100 and may need a healthier swap.`,
+        category: "Health",
+        severity: "warning",
+        dedupeKey: `meal-score-${context.orderId}`,
+      });
+    }
+    const detectedAllergens = Array.from(
+      new Set(context.items.flatMap((item) => item.allergens.filter((allergen) => allergen !== "None"))),
+    );
+    if (detectedAllergens.length > 0) {
+      notify({
+        icon: "!",
+        title: "Dietary safety risk detected",
+        description: `This order contains: ${detectedAllergens.join(", ")}. Review the dietary safety guidance before serving.`,
+        category: "Health",
+        severity: "warning",
+        dedupeKey: `dietary-risk-${context.orderId}`,
+      });
+    }
     setProcessingContext(context);
     setCompletedSteps(0);
     setIsProcessing(true);

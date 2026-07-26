@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import HealthScoreOverview from "@/components/dashboard/restaurant-health/HealthScoreOverview";
@@ -11,7 +10,9 @@ import ImprovementSuggestions from "@/components/dashboard/restaurant-health/Imp
 import WeeklyTrendChart from "@/components/dashboard/restaurant-health/WeeklyTrendChart";
 import HealthBreakdown from "@/components/dashboard/restaurant-health/HealthBreakdown";
 import { healthParameters } from "@/components/dashboard/restaurant-health/restaurantHealthData";
-import { buildRestaurantHealthAnalysisPayload, parseOrderAnalysisContext } from "@/lib/orderAnalysis";
+import { buildRestaurantHealthAnalysisPayload } from "@/lib/orderAnalysis";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
+import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
 type AIInsightPayload = {
   summary: string;
@@ -58,15 +59,11 @@ function normalizeInsightPayload(payload: unknown): AIInsightPayload {
 }
 
 export default function RestaurantHealthDashboard() {
-  const searchParams = useSearchParams();
+  const { activeOrder: orderContext } = useActiveOrder();
+  const { notify } = useNotifications();
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [insightError, setInsightError] = useState<string | null>(null);
   const [insightData, setInsightData] = useState<AIInsightPayload | null>(null);
-
-  const orderContext = useMemo(
-    () => parseOrderAnalysisContext(searchParams.get("orderData")),
-    [searchParams],
-  );
 
   async function handleGenerateAIInsights() {
     setIsGeneratingInsights(true);
@@ -108,7 +105,24 @@ export default function RestaurantHealthDashboard() {
         throw new Error(payload?.error || "Unable to generate AI insights right now.");
       }
 
-      setInsightData(normalizeInsightPayload(payload));
+      const insight = normalizeInsightPayload(payload);
+      setInsightData(insight);
+      notify({
+        icon: "↗",
+        title: "Restaurant health updated",
+        description: insight.summary || "Restaurant health insights are ready to review.",
+        category: "Restaurant",
+        severity: "information",
+        dedupeKey: `restaurant-health-${orderContext?.orderId ?? "sample"}`,
+      });
+      notify({
+        icon: "✦",
+        title: "AI recommendation generated",
+        description: insight.recommendations[0] ?? "New operational guidance is available.",
+        category: "AI",
+        severity: "ai-generated",
+        dedupeKey: `restaurant-ai-${orderContext?.orderId ?? "sample"}`,
+      });
     } catch (error) {
       setInsightError(
         error instanceof Error ? error.message : "Unable to generate AI insights right now.",

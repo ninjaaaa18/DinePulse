@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import {
@@ -12,7 +11,9 @@ import {
   profileOptions,
   safetyTimeline,
 } from "@/components/dashboard/allergy-safety/allergySafetyData";
-import { buildDietarySafetyAnalysisPayload, parseOrderAnalysisContext } from "@/lib/orderAnalysis";
+import { buildDietarySafetyAnalysisPayload } from "@/lib/orderAnalysis";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
+import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
 const statusStyles = {
   Safe: "bg-emerald/15 text-emerald border-emerald/30",
@@ -74,18 +75,14 @@ function normalizeAIAnalysisPayload(payload: unknown): AIAnalysisPayload {
 }
 
 export default function AllergySafetyDashboard() {
-  const searchParams = useSearchParams();
+  const { activeOrder: orderContext } = useActiveOrder();
+  const { notify } = useNotifications();
   const [selectedConditions, setSelectedConditions] = useState<string[]>(["Diabetes"]);
   const [selectedDiets, setSelectedDiets] = useState<string[]>(["Vegetarian"]);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>(["Peanut"]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AIAnalysisPayload | null>(null);
-
-  const orderContext = useMemo(
-    () => parseOrderAnalysisContext(searchParams.get("orderData")),
-    [searchParams],
-  );
 
   const toggleSelection = (
     value: string,
@@ -167,7 +164,26 @@ export default function AllergySafetyDashboard() {
         throw new Error(payload?.error || "Unable to analyze dietary safety.");
       }
 
-      setAnalysisData(normalizeAIAnalysisPayload(payload));
+      const analysis = normalizeAIAnalysisPayload(payload);
+      setAnalysisData(analysis);
+      notify({
+        icon: "✦",
+        title: "AI dietary review generated",
+        description: analysis.safeAlternatives[0] ?? "Dietary safety recommendations are ready.",
+        category: "AI",
+        severity: "ai-generated",
+        dedupeKey: `dietary-ai-${orderContext?.orderId ?? "sample"}`,
+      });
+      if (analysis.warnings.length > 0 || (analysis.riskLevel && analysis.riskLevel.toLowerCase() !== "low")) {
+        notify({
+          icon: "!",
+          title: "Dietary safety risk detected",
+          description: analysis.warnings[0] ?? `Risk level: ${analysis.riskLevel}.`,
+          category: "Health",
+          severity: "critical",
+          dedupeKey: `dietary-risk-${orderContext?.orderId ?? "sample"}`,
+        });
+      }
     } catch (error) {
       setAnalysisError(
         error instanceof Error ? error.message : "Unable to analyze dietary safety.",

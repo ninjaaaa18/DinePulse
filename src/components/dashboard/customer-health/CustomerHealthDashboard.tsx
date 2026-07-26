@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import MealHealthScoreOverview from "@/components/dashboard/customer-health/MealHealthScoreOverview";
 import SelectedMealCard from "@/components/dashboard/customer-health/SelectedMealCard";
 import NutritionBreakdownCard from "@/components/dashboard/customer-health/NutritionBreakdownCard";
@@ -13,7 +12,9 @@ import DailyNutritionSummary from "@/components/dashboard/customer-health/DailyN
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import { nutritionBreakdown } from "@/components/dashboard/customer-health/customerHealthData";
-import { buildCustomerHealthAnalysisPayload, parseOrderAnalysisContext } from "@/lib/orderAnalysis";
+import { buildCustomerHealthAnalysisPayload } from "@/lib/orderAnalysis";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
+import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
 type AnalysisPayload = {
   summary: string;
@@ -72,12 +73,11 @@ function normalizeAnalysisPayload(payload: unknown): AnalysisPayload {
 }
 
 export default function CustomerHealthDashboard() {
-  const searchParams = useSearchParams();
+  const { activeOrder: orderContext } = useActiveOrder();
+  const { notify } = useNotifications();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisPayload | null>(null);
-
-  const orderContext = useMemo(() => parseOrderAnalysisContext(searchParams.get("orderData")), [searchParams]);
 
   useEffect(() => {
     if (!orderContext || isAnalyzing || analysisResult || analysisError) {
@@ -127,7 +127,16 @@ export default function CustomerHealthDashboard() {
         throw new Error(payload?.error || "Unable to analyze the meal right now.");
       }
 
-      setAnalysisResult(normalizeAnalysisPayload(payload));
+      const analysis = normalizeAnalysisPayload(payload);
+      setAnalysisResult(analysis);
+      notify({
+        icon: "✦",
+        title: "AI meal analysis generated",
+        description: analysis.recommendations[0] ?? "Your meal health insights are ready to review.",
+        category: "AI",
+        severity: "ai-generated",
+        dedupeKey: `meal-analysis-${orderContext?.orderId ?? "sample"}`,
+      });
     } catch (error) {
       setAnalysisError(
         error instanceof Error ? error.message : "Unable to analyze the meal right now.",

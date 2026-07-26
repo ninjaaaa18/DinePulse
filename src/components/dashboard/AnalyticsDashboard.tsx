@@ -1,32 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import Card from "@/components/cards/Card";
 import RevenueChart from "@/components/dashboard/RevenueChart";
-import { buildAnalyticsSnapshotFromOrderContext, getStoredAnalyticsSnapshot, parseOrderAnalysisContext, type AnalyticsSnapshot } from "@/lib/orderAnalysis";
+import { getStoredAnalyticsSnapshot, type AnalyticsSnapshot } from "@/lib/orderAnalysis";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
+import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
 function formatCurrency(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
 export default function AnalyticsDashboard() {
-  const searchParams = useSearchParams();
+  const { activeOrder } = useActiveOrder();
+  const { notify } = useNotifications();
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot>(() => getStoredAnalyticsSnapshot());
 
-  const orderContext = useMemo(
-    () => parseOrderAnalysisContext(searchParams.get("orderData")),
-    [searchParams],
-  );
-
   useEffect(() => {
-    if (!orderContext) {
-      return;
+    setAnalytics(getStoredAnalyticsSnapshot());
+    if (activeOrder) {
+      notify({
+        icon: "₹",
+        title: "Analytics updated",
+        description: `Revenue increased by ₹${activeOrder.subtotal.toLocaleString("en-IN")} from the latest order.`,
+        category: "Analytics",
+        severity: "information",
+        dedupeKey: `analytics-update-${activeOrder.orderId}`,
+      });
     }
-
-    const nextSnapshot = buildAnalyticsSnapshotFromOrderContext(orderContext, analytics);
-    setAnalytics(nextSnapshot);
-  }, [analytics, orderContext]);
+  }, [activeOrder, notify]);
 
   return (
     <div className="space-y-6">

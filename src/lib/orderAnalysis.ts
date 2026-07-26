@@ -13,6 +13,7 @@ export type OrderAnalysisItem = {
 };
 
 export type OrderAnalysisContext = {
+  orderId?: string;
   selectedRestaurantId: string;
   selectedRestaurantName: string;
   restaurantCuisine: string;
@@ -63,6 +64,7 @@ export type AnalyticsSnapshot = {
 const ORDER_STORAGE_KEY = "dinepulse.order-context";
 const INVENTORY_STORAGE_KEY = "dinepulse.inventory";
 const ANALYTICS_STORAGE_KEY = "dinepulse.analytics";
+const INVENTORY_APPLIED_ORDERS_STORAGE_KEY = "dinepulse.inventory-applied-orders";
 
 const baseInventoryState: InventoryIngredient[] = [
   { id: "chicken-patty", name: "Chicken Patty", currentStock: 120, threshold: 20, unit: "servings", initialStock: 120, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
@@ -108,6 +110,42 @@ function getInventoryWarning(status: InventoryIngredientStatus, currentStock: nu
 
 function cloneInventoryState(state: InventoryIngredient[] = baseInventoryState): InventoryIngredient[] {
   return state.map((item) => ({ ...item }));
+}
+
+function getOrderSignature(context: OrderAnalysisContext) {
+  return context.orderId ?? `${context.selectedRestaurantId}:${context.items
+    .map((item) => `${item.id}:${item.quantity}`)
+    .join("|")}`;
+}
+
+function getAppliedInventoryOrderKeys(): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const persistedValue = window.sessionStorage.getItem(INVENTORY_APPLIED_ORDERS_STORAGE_KEY);
+    const parsed = persistedValue ? JSON.parse(persistedValue) : [];
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function markInventoryOrderApplied(orderKey: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const appliedOrderKeys = getAppliedInventoryOrderKeys();
+  if (appliedOrderKeys.includes(orderKey)) {
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    INVENTORY_APPLIED_ORDERS_STORAGE_KEY,
+    JSON.stringify([...appliedOrderKeys, orderKey].slice(-100)),
+  );
 }
 
 function getIngredientRecipe(itemName: string, itemId: string) {
@@ -288,9 +326,7 @@ export function buildAnalyticsSnapshotFromOrderContext(
   previousSnapshot: AnalyticsSnapshot | null = getStoredAnalyticsSnapshot(),
 ): AnalyticsSnapshot {
   const currentSnapshot = previousSnapshot ?? getDefaultAnalyticsSnapshot();
-  const orderSignature = `${context.selectedRestaurantId}:${context.items
-    .map((item) => `${item.id}:${item.quantity}`)
-    .join("|")}`;
+  const orderSignature = getOrderSignature(context);
 
   if (currentSnapshot.lastOrderSignature === orderSignature) {
     return currentSnapshot;
@@ -369,6 +405,11 @@ export function buildInventoryStateFromOrderContext(
   context: OrderAnalysisContext,
   previousInventory: InventoryIngredient[] = getStoredInventoryState(),
 ): InventoryIngredient[] {
+  const orderKey = getOrderSignature(context);
+  if (getAppliedInventoryOrderKeys().includes(orderKey)) {
+    return cloneInventoryState(previousInventory);
+  }
+
   const baseState = cloneInventoryState(previousInventory.length > 0 ? previousInventory : baseInventoryState);
   const ingredientUsage = new Map<string, number>();
 
@@ -399,6 +440,7 @@ export function buildInventoryStateFromOrderContext(
   });
 
   persistInventoryState(nextInventory);
+  markInventoryOrderApplied(orderKey);
   return nextInventory;
 }
 
