@@ -22,7 +22,7 @@ export const dashboardStats = [
   },
   {
     title: "Revenue",
-    value: "$12,480",
+    value: "₹12,480",
     change: "+12.5%",
     trend: "up" as const,
     icon: "💰",

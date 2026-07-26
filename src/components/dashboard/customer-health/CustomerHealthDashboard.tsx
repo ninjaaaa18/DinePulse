@@ -79,6 +79,12 @@ export default function CustomerHealthDashboard() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisPayload | null>(null);
 
+  // Reset AI state when a new order is received
+  useEffect(() => {
+    setAnalysisResult(null);
+    setAnalysisError(null);
+  }, [orderContext?.orderId]);
+
   useEffect(() => {
     if (!orderContext || isAnalyzing || analysisResult || analysisError) {
       return;

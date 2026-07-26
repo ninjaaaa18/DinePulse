@@ -12,6 +12,7 @@ import {
   type AnalyticsSnapshot,
   type InventoryIngredient,
 } from "@/lib/orderAnalysis";
+import { loadAnalyticsWithFallback, loadInventoryWithFallback } from "@/lib/supabase";
 import { recentActivity, aiRecommendations } from "@/components/dashboard/dashboardData";
 
 export default function MainDashboardView() {
@@ -20,8 +21,22 @@ export default function MainDashboardView() {
   const [inventory, setInventory] = useState<InventoryIngredient[]>(() => getStoredInventoryState());
 
   useEffect(() => {
-    setAnalytics(getStoredAnalyticsSnapshot());
-    setInventory(getStoredInventoryState());
+    let isMounted = true;
+    async function syncData() {
+      const [remoteAnalytics, remoteInventory] = await Promise.all([
+        loadAnalyticsWithFallback(),
+        loadInventoryWithFallback(),
+      ]);
+      if (!isMounted) return;
+
+      setAnalytics(remoteAnalytics);
+      setInventory(remoteInventory);
+    }
+
+    syncData();
+    return () => {
+      isMounted = false;
+    };
   }, [activeOrder]);
 
   const restaurantHealthScore = useMemo(() => {

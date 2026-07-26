@@ -30,7 +30,7 @@ export const selectedMeal = {
   fat: "34g",
   sugar: "42g",
   fiber: "6g",
-  cost: "$14.99",
+  cost: "₹249",
 };
 
 export const nutritionBreakdown = [

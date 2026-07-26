@@ -18,9 +18,9 @@ export default function RevenueChart({
   subtitle = "Weekly revenue overview",
   highlight = "+12.5% this week",
   totalLabel = "Total Revenue",
-  totalValue = "$12,480",
+  totalValue = "₹12,480",
   secondaryLabel = "Avg. Daily",
-  secondaryValue = "$1,783",
+  secondaryValue = "₹1,783",
 }: RevenueChartProps) {
   const chartData = data ?? revenueChartData.map((item) => ({ label: item.day, value: item.value }));
   const maxValue = Math.max(...chartData.map((item) => item.value), 1);
