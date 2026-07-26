@@ -127,7 +127,7 @@ function normalizeAnalysis(type: SupportedAIType, raw: string): StructuredAnalys
     case "chat":
     default:
       return {
-        reply: cleaned || "Thanks for reaching out. How can I help?",
+        reply: cleaned || "I am your DinePulse AI Copilot. How can I assist with your restaurant operations today?",
       };
   }
 }
@@ -187,11 +187,12 @@ function buildPrompt(type: SupportedAIType, prompt: string, data: Record<string,
     case "chat":
     default:
       return [
-        "You are a DinePulse AI Assistant.",
+        "You are the DinePulse AI Restaurant Manager (Copilot).",
+        "Your goal is to give clear, expert, concise, actionable advice for restaurant operations, inventory, customer health, menu strategy, food waste reduction, and sales performance based on the provided live context data.",
         "Return valid JSON only. Do not wrap it in markdown. Do not include commentary.",
         "Use this shape exactly: {\"reply\": \"...\"}",
-        prompt || "Respond helpfully to the request.",
-        `Data:\n${dataText}`,
+        `User Question:\n${prompt || "Provide today's operational summary and recommended actions."}`,
+        `Current Live Dashboard Context Data:\n${dataText}`,
       ]
         .filter(Boolean)
         .join("\n\n");

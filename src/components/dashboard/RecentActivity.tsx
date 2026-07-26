@@ -1,7 +1,21 @@
 import Card from "@/components/cards/Card";
 import { recentActivity } from "@/components/dashboard/dashboardData";
 
-export default function RecentActivity() {
+export type ActivityItem = {
+  id: string | number;
+  action: string;
+  detail: string;
+  time: string;
+  icon: string;
+};
+
+type RecentActivityProps = {
+  items?: ActivityItem[];
+};
+
+export default function RecentActivity({ items }: RecentActivityProps) {
+  const displayItems = items && items.length > 0 ? items : recentActivity;
+
   return (
     <Card className="h-full">
       <div className="mb-6">
@@ -10,7 +24,7 @@ export default function RecentActivity() {
       </div>
 
       <ul className="space-y-4">
-        {recentActivity.map((item) => (
+        {displayItems.map((item) => (
           <li
             key={item.id}
             className="flex gap-3 rounded-xl p-3 transition-colors duration-200 hover:bg-white/5"
@@ -29,3 +43,4 @@ export default function RecentActivity() {
     </Card>
   );
 }
+
