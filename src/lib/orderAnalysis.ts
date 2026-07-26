@@ -1,3 +1,5 @@
+import { syncAnalyticsToSupabase, syncInventoryToSupabase } from "./supabase";
+
 export type OrderAnalysisItem = {
   id: string;
   name: string;
@@ -66,7 +68,7 @@ const INVENTORY_STORAGE_KEY = "dinepulse.inventory";
 const ANALYTICS_STORAGE_KEY = "dinepulse.analytics";
 const INVENTORY_APPLIED_ORDERS_STORAGE_KEY = "dinepulse.inventory-applied-orders";
 
-const baseInventoryState: InventoryIngredient[] = [
+export const baseInventoryState: InventoryIngredient[] = [
   { id: "chicken-patty", name: "Chicken Patty", currentStock: 120, threshold: 20, unit: "servings", initialStock: 120, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
   { id: "burger-bun", name: "Burger Bun", currentStock: 80, threshold: 15, unit: "units", initialStock: 80, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
   { id: "cheese-slice", name: "Cheese Slice", currentStock: 65, threshold: 10, unit: "slices", initialStock: 65, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
@@ -80,7 +82,7 @@ const baseInventoryState: InventoryIngredient[] = [
   { id: "cucumber", name: "Cucumber", currentStock: 30, threshold: 8, unit: "kg", initialStock: 30, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
 ];
 
-function getInventoryStatus(currentStock: number, threshold: number, remainingPercent: number): InventoryIngredientStatus {
+export function getInventoryStatus(currentStock: number, threshold: number, remainingPercent: number): InventoryIngredientStatus {
   if (currentStock <= threshold / 2 || remainingPercent <= 20) {
     return "Critical";
   }
@@ -96,7 +98,7 @@ function getInventoryStatus(currentStock: number, threshold: number, remainingPe
   return "Healthy";
 }
 
-function getInventoryWarning(status: InventoryIngredientStatus, currentStock: number, threshold: number): string | null {
+export function getInventoryWarning(status: InventoryIngredientStatus, currentStock: number, threshold: number): string | null {
   if (status === "Critical") {
     return `Restock immediately. ${currentStock} servings remain.`;
   }
@@ -190,7 +192,7 @@ function buildTrendSeries(previousSeries: AnalyticsChartPoint[], nextValue: numb
   return nextSeries;
 }
 
-function getDefaultAnalyticsSnapshot(): AnalyticsSnapshot {
+export function getDefaultAnalyticsSnapshot(): AnalyticsSnapshot {
   return {
     totalOrders: 0,
     revenue: 0,
@@ -398,6 +400,9 @@ export function buildAnalyticsSnapshotFromOrderContext(
   };
 
   persistAnalyticsSnapshot(snapshot);
+  syncAnalyticsToSupabase(snapshot).catch((err) => {
+    console.warn("[Analytics Sync] Background sync to Supabase failed:", err);
+  });
   return snapshot;
 }
 
@@ -440,6 +445,9 @@ export function buildInventoryStateFromOrderContext(
   });
 
   persistInventoryState(nextInventory);
+  syncInventoryToSupabase(nextInventory).catch((err) => {
+    console.warn("[Inventory Sync] Background sync to Supabase failed:", err);
+  });
   markInventoryOrderApplied(orderKey);
   return nextInventory;
 }

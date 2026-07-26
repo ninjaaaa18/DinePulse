@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import { applyOrderToInventory, type OrderAnalysisContext } from "@/lib/orderAnalysis";
+import { saveOrderToSupabase } from "@/lib/supabase";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
@@ -544,7 +545,7 @@ export default function OrderFoodDashboard() {
     return () => window.clearInterval(intervalId);
   }, [isProcessing, processingContext, router]);
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (!cart.length) {
       setAnalysisMessage("Add a few dishes to build your order summary first.");
       return;
@@ -565,6 +566,14 @@ export default function OrderFoodDashboard() {
     };
 
     setActiveOrder(context);
+
+    // Save order & order_items to Supabase PostgreSQL (Phase 1) with graceful fallback
+    try {
+      await saveOrderToSupabase(context);
+    } catch (err) {
+      console.warn("[Order Sync Fallback] Failed to save order to Supabase, continuing with sessionStorage:", err);
+    }
+
     const updatedInventory = applyOrderToInventory(context);
     const lowStockItems = updatedInventory.filter((item) => item.warning);
     notify({

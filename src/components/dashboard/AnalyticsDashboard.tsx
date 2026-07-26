@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Card from "@/components/cards/Card";
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import { getStoredAnalyticsSnapshot, type AnalyticsSnapshot } from "@/lib/orderAnalysis";
+import { loadAnalyticsWithFallback } from "@/lib/supabase";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
@@ -17,17 +18,31 @@ export default function AnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot>(() => getStoredAnalyticsSnapshot());
 
   useEffect(() => {
-    setAnalytics(getStoredAnalyticsSnapshot());
-    if (activeOrder) {
-      notify({
-        icon: "₹",
-        title: "Analytics updated",
-        description: `Revenue increased by ₹${activeOrder.subtotal.toLocaleString("en-IN")} from the latest order.`,
-        category: "Analytics",
-        severity: "information",
-        dedupeKey: `analytics-update-${activeOrder.orderId}`,
-      });
+    let isMounted = true;
+
+    async function loadData() {
+      const nextAnalytics = await loadAnalyticsWithFallback();
+      if (!isMounted) return;
+
+      setAnalytics(nextAnalytics);
+
+      if (activeOrder) {
+        notify({
+          icon: "₹",
+          title: "Analytics updated",
+          description: `Revenue increased by ₹${activeOrder.subtotal.toLocaleString("en-IN")} from the latest order.`,
+          category: "Analytics",
+          severity: "information",
+          dedupeKey: `analytics-update-${activeOrder.orderId}`,
+        });
+      }
     }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeOrder, notify]);
 
   return (

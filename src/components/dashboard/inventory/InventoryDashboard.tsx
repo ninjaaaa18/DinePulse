@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "@/components/cards/Card";
 import { getStoredInventoryState, type InventoryIngredient } from "@/lib/orderAnalysis";
+import { loadInventoryWithFallback } from "@/lib/supabase";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
@@ -39,37 +40,48 @@ export default function InventoryDashboard() {
   const [warningCount, setWarningCount] = useState(0);
 
   useEffect(() => {
-    const nextInventory = getStoredInventoryState();
-    setInventory(nextInventory);
+    let isMounted = true;
 
-    if (!activeOrder) {
-      return;
+    async function loadData() {
+      const nextInventory = await loadInventoryWithFallback();
+      if (!isMounted) return;
+
+      setInventory(nextInventory);
+
+      if (!activeOrder) {
+        return;
+      }
+
+      notify({
+        icon: "□",
+        title: "Inventory updated",
+        description: "Ingredient stock has been adjusted for the completed order.",
+        category: "Inventory",
+        severity: "information",
+        dedupeKey: `inventory-update-${activeOrder.orderId}`,
+      });
+      nextInventory.filter((item) => item.warning).forEach((item) => {
+        notify({
+          icon: "!",
+          title: `${item.name} stock is low`,
+          description: item.warning ?? "Restock this ingredient soon.",
+          category: "Inventory",
+          severity: item.status === "Critical" ? "critical" : "warning",
+          dedupeKey: `low-stock-${activeOrder.orderId}-${item.id}`,
+        });
+      });
     }
 
-    notify({
-      icon: "□",
-      title: "Inventory updated",
-      description: "Ingredient stock has been adjusted for the completed order.",
-      category: "Inventory",
-      severity: "information",
-      dedupeKey: `inventory-update-${activeOrder.orderId}`,
-    });
-    nextInventory.filter((item) => item.warning).forEach((item) => {
-      notify({
-        icon: "!",
-        title: `${item.name} stock is low`,
-        description: item.warning ?? "Restock this ingredient soon.",
-        category: "Inventory",
-        severity: item.status === "Critical" ? "critical" : "warning",
-        dedupeKey: `low-stock-${activeOrder.orderId}-${item.id}`,
-      });
-    });
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeOrder, notify]);
 
   useEffect(() => {
     setWarningCount(inventory.filter((item) => item.warning).length);
   }, [inventory]);
-
   const summary = useMemo(() => {
     const consumedItems = inventory.filter((item) => item.stockChange < 0).length;
     const healthyItems = inventory.filter((item) => item.status === "Healthy").length;
