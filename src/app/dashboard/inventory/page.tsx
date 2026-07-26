@@ -1,13 +1,12 @@
-import SectionPlaceholder from "@/components/dashboard/SectionPlaceholder";
+import { Suspense } from "react";
+import InventoryDashboard from "@/components/dashboard/inventory/InventoryDashboard";
 
 export const metadata = { title: "Inventory — DinePulse" };
 
 export default function InventoryPage() {
   return (
-    <SectionPlaceholder
-      title="Inventory"
-      description="Track stock levels, expiry dates, and reorder recommendations."
-      icon="📦"
-    />
+    <Suspense fallback={<div className="rounded-2xl border border-white/10 bg-surface p-6 text-sm text-muted">Loading inventory insights…</div>}>
+      <InventoryDashboard />
+    </Suspense>
   );
 }

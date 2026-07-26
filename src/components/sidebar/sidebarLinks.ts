@@ -6,6 +6,7 @@ export type SidebarLink = {
 
 export const sidebarLinks: SidebarLink[] = [
   { label: "Dashboard", href: "/dashboard", icon: "📊" },
+  { label: "Order Food", href: "/dashboard/order-food", icon: "🍽️" },
   { label: "Restaurant Health", href: "/dashboard/restaurant-health", icon: "🏥" },
   { label: "Customer Health", href: "/dashboard/customer-health", icon: "🥗" },
   { label: "Allergy Safety", href: "/dashboard/allergy-safety", icon: "🛡️" },

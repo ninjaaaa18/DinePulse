@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import MealHealthScoreOverview from "@/components/dashboard/customer-health/MealHealthScoreOverview";
 import SelectedMealCard from "@/components/dashboard/customer-health/SelectedMealCard";
 import NutritionBreakdownCard from "@/components/dashboard/customer-health/NutritionBreakdownCard";
@@ -12,6 +13,7 @@ import DailyNutritionSummary from "@/components/dashboard/customer-health/DailyN
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import { nutritionBreakdown } from "@/components/dashboard/customer-health/customerHealthData";
+import { buildCustomerHealthAnalysisPayload, parseOrderAnalysisContext } from "@/lib/orderAnalysis";
 
 type AnalysisPayload = {
   summary: string;
@@ -70,9 +72,20 @@ function normalizeAnalysisPayload(payload: unknown): AnalysisPayload {
 }
 
 export default function CustomerHealthDashboard() {
+  const searchParams = useSearchParams();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisPayload | null>(null);
+
+  const orderContext = useMemo(() => parseOrderAnalysisContext(searchParams.get("orderData")), [searchParams]);
+
+  useEffect(() => {
+    if (!orderContext || isAnalyzing || analysisResult || analysisError) {
+      return;
+    }
+
+    void handleAnalyzeWithAI();
+  }, [analysisError, analysisResult, isAnalyzing, orderContext]);
 
   async function handleAnalyzeWithAI() {
     setIsAnalyzing(true);
@@ -80,16 +93,9 @@ export default function CustomerHealthDashboard() {
     setAnalysisResult(null);
 
     try {
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "meal-analysis",
-          prompt:
-            "Analyze this meal using the provided nutrition values. Keep the response concise and actionable.",
-          data: {
+      const requestPayload = orderContext
+        ? buildCustomerHealthAnalysisPayload(orderContext)
+        : {
             meal: ["Chicken Burger", "French Fries", "Coke"],
             nutrition: {
               calories: 842,
@@ -100,7 +106,18 @@ export default function CustomerHealthDashboard() {
               sodium: 1240,
               fiber: 6,
             },
-          },
+          };
+
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "meal-analysis",
+          prompt:
+            "Analyze this meal using the provided nutrition values. Keep the response concise and actionable.",
+          data: requestPayload,
         }),
       });
 

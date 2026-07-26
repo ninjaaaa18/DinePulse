@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import {
@@ -11,6 +12,7 @@ import {
   profileOptions,
   safetyTimeline,
 } from "@/components/dashboard/allergy-safety/allergySafetyData";
+import { buildDietarySafetyAnalysisPayload, parseOrderAnalysisContext } from "@/lib/orderAnalysis";
 
 const statusStyles = {
   Safe: "bg-emerald/15 text-emerald border-emerald/30",
@@ -72,12 +74,18 @@ function normalizeAIAnalysisPayload(payload: unknown): AIAnalysisPayload {
 }
 
 export default function AllergySafetyDashboard() {
+  const searchParams = useSearchParams();
   const [selectedConditions, setSelectedConditions] = useState<string[]>(["Diabetes"]);
   const [selectedDiets, setSelectedDiets] = useState<string[]>(["Vegetarian"]);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>(["Peanut"]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AIAnalysisPayload | null>(null);
+
+  const orderContext = useMemo(
+    () => parseOrderAnalysisContext(searchParams.get("orderData")),
+    [searchParams],
+  );
 
   const toggleSelection = (
     value: string,
@@ -97,6 +105,29 @@ export default function AllergySafetyDashboard() {
     setAnalysisData(null);
 
     try {
+      const basePayload = orderContext
+        ? buildDietarySafetyAnalysisPayload(orderContext)
+        : {
+            customer: {
+              name: "John",
+              age: 28,
+              diet: selectedDiets.join(", ") || "Balanced",
+              medicalConditions: selectedConditions,
+              allergies: selectedAllergies.map((item) =>
+                item === "Peanut" ? "Peanuts" : item,
+              ),
+            },
+            meal: {
+              name: "Veg Combo Meal",
+              items: ["Veg Burger", "French Fries", "Chocolate Milkshake"],
+            },
+            nutrition: {
+              calories: 820,
+              sugar: 42,
+              sodium: 1240,
+            },
+          };
+
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: {
@@ -105,16 +136,26 @@ export default function AllergySafetyDashboard() {
         body: JSON.stringify({
           type: "dietary-safety",
           data: {
+            ...basePayload,
             customer: {
-              name: "John",
-              age: 28,
-              diet: "Vegetarian",
-              medicalConditions: ["Diabetes"],
-              allergies: ["Peanuts", "Lactose"],
+              ...basePayload.customer,
+              diet: selectedDiets.join(", ") || basePayload.customer.diet,
+              medicalConditions: selectedConditions.length
+                ? selectedConditions
+                : basePayload.customer.medicalConditions,
+              allergies: Array.from(
+                new Set([
+                  ...basePayload.customer.allergies.filter((item) => item !== "None"),
+                  ...selectedAllergies.map((item) => (item === "Peanut" ? "Peanuts" : item)),
+                ]),
+              ),
             },
             meal: {
-              name: "Veg Combo Meal",
-              items: ["Veg Burger", "French Fries", "Chocolate Milkshake"],
+              ...basePayload.meal,
+              name: orderContext?.selectedRestaurantName ?? basePayload.meal.name,
+              items: orderContext
+                ? orderContext.items.map((item) => item.name)
+                : basePayload.meal.items,
             },
           },
         }),
@@ -150,6 +191,17 @@ export default function AllergySafetyDashboard() {
           dietary preferences, and allergy alerts.
         </p>
       </header>
+
+      {orderContext ? (
+        <Card className="border border-emerald/20 bg-emerald/10 p-4 text-sm text-emerald">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Order-driven review for {orderContext.selectedRestaurantName} • {orderContext.items.length} items
+            </span>
+            <span>{orderContext.totalCalories} kcal • ${orderContext.subtotal.toFixed(1)}</span>
+          </div>
+        </Card>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card hover className="space-y-8">
@@ -265,23 +317,31 @@ export default function AllergySafetyDashboard() {
           <div className="rounded-2xl border border-white/10 bg-background/60 p-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-semibold text-white">Chicken Burger</h3>
-                <p className="mt-1 text-sm text-muted">A classic comfort meal</p>
+                <h3 className="text-xl font-semibold text-white">
+                  {orderContext?.selectedRestaurantName ?? "Chicken Burger"}
+                </h3>
+                <p className="mt-1 text-sm text-muted">
+                  {orderContext
+                    ? `${orderContext.items.length} selected dishes ready for safety review`
+                    : "A classic comfort meal"}
+                </p>
               </div>
               <div className="rounded-full border border-emerald/20 bg-emerald/10 px-3 py-1 text-sm text-emerald">
-                Quick Scan
+                {orderContext ? "Order Scan" : "Quick Scan"}
               </div>
             </div>
 
             <div className="mt-5 space-y-2">
-              {mealItems.map((item) => (
+              {(orderContext ? orderContext.items : mealItems.map((item) => ({ name: item, quantity:1 }))).map((item, index) => (
                 <div
-                  key={item}
+                  key={typeof item === "string" ? item : item.name}
                   className="flex items-center justify-between rounded-xl border border-white/10 bg-surface/70 px-3 py-2"
                 >
-                  <span className="text-sm text-white">{item}</span>
+                  <span className="text-sm text-white">
+                    {typeof item === "string" ? item : `${item.name}${item.quantity > 1 ? ` ×${item.quantity}` : ""}`}
+                  </span>
                   <span className="text-xs uppercase tracking-[0.2em] text-muted">
-                    Item
+                    {typeof item === "string" ? "Item" : "Dish"}
                   </span>
                 </div>
               ))}

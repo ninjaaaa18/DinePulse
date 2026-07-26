@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import HealthScoreOverview from "@/components/dashboard/restaurant-health/HealthScoreOverview";
@@ -10,6 +11,7 @@ import ImprovementSuggestions from "@/components/dashboard/restaurant-health/Imp
 import WeeklyTrendChart from "@/components/dashboard/restaurant-health/WeeklyTrendChart";
 import HealthBreakdown from "@/components/dashboard/restaurant-health/HealthBreakdown";
 import { healthParameters } from "@/components/dashboard/restaurant-health/restaurantHealthData";
+import { buildRestaurantHealthAnalysisPayload, parseOrderAnalysisContext } from "@/lib/orderAnalysis";
 
 type AIInsightPayload = {
   summary: string;
@@ -56,9 +58,15 @@ function normalizeInsightPayload(payload: unknown): AIInsightPayload {
 }
 
 export default function RestaurantHealthDashboard() {
+  const searchParams = useSearchParams();
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [insightError, setInsightError] = useState<string | null>(null);
   const [insightData, setInsightData] = useState<AIInsightPayload | null>(null);
+
+  const orderContext = useMemo(
+    () => parseOrderAnalysisContext(searchParams.get("orderData")),
+    [searchParams],
+  );
 
   async function handleGenerateAIInsights() {
     setIsGeneratingInsights(true);
@@ -66,6 +74,23 @@ export default function RestaurantHealthDashboard() {
     setInsightData(null);
 
     try {
+      const basePayload = orderContext
+        ? buildRestaurantHealthAnalysisPayload(orderContext)
+        : {
+            restaurant: {
+              name: "North Harbor Kitchen",
+              cuisine: "Modern Bistro",
+              deliveryTime: "18–24 min",
+              orderVolume: 324,
+              averageTicket: 24.8,
+            },
+            order: {
+              items: ["Signature Burger", "Truffle Fries"],
+              totalCalories: 980,
+              averageMealScore: 89,
+            },
+          };
+
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: {
@@ -73,16 +98,7 @@ export default function RestaurantHealthDashboard() {
         },
         body: JSON.stringify({
           type: "restaurant-health",
-          data: {
-            overallScore: 92,
-            customerSatisfaction: 94,
-            serviceSpeed: 88,
-            inventoryHealth: 91,
-            staffEfficiency: 90,
-            foodWaste: 12,
-            dailySales: 18500,
-            ordersToday: 324,
-          },
+          data: basePayload,
         }),
       });
 
@@ -112,6 +128,17 @@ export default function RestaurantHealthDashboard() {
           AI-powered health monitoring for your restaurant operations
         </p>
       </header>
+
+      {orderContext ? (
+        <Card className="border border-emerald/20 bg-emerald/10 p-4 text-sm text-emerald">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Order-aware review for {orderContext.selectedRestaurantName} • {orderContext.items.length} items
+            </span>
+            <span>{orderContext.totalCalories} kcal • ${orderContext.subtotal.toFixed(1)}</span>
+          </div>
+        </Card>
+      ) : null}
 
       <section aria-label="Overall health score" className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
