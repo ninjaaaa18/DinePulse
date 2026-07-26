@@ -13,4 +13,5 @@ export const sidebarLinks: SidebarLink[] = [
   { label: "Inventory", href: "/dashboard/inventory", icon: "📦" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "📈" },
   { label: "Settings", href: "/dashboard/settings", icon: "⚙️" },
+  { label: "AI Predictions", href: "/dashboard/ai-predictions", icon: "✦" },
 ];

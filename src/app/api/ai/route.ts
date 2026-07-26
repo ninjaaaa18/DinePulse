@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateAIResponse } from "@/lib/ai";
 
-type SupportedAIType = "meal-analysis" | "restaurant-health" | "dietary-safety" | "chat";
+type SupportedAIType = "meal-analysis" | "restaurant-health" | "dietary-safety" | "prediction" | "chat";
 
 type AIRequestBody = {
   type?: string;
@@ -21,6 +21,13 @@ type StructuredAnalysis =
       warnings?: string[];
       safeAlternatives?: string[];
       riskLevel?: string;
+      predictions?: Array<{
+        title: string;
+        forecast: string;
+        confidence: number;
+        priority: string;
+        action: string;
+      }>;
       reply?: string;
     }
   | Record<string, unknown>;
@@ -104,6 +111,19 @@ function normalizeAnalysis(type: SupportedAIType, raw: string): StructuredAnalys
         safeAlternatives: ["Choose grilled alternatives and lower-sugar beverages."],
         riskLevel: "Low",
       };
+    case "prediction":
+      return {
+        ...fallback,
+        predictions: [
+          {
+            title: "Tomorrow's demand",
+            forecast: "Expect demand to remain steady with a modest increase during the next peak period.",
+            confidence: 72,
+            priority: "Medium",
+            action: "Prepare popular dishes and review ingredient buffers before service.",
+          },
+        ],
+      };
     case "chat":
     default:
       return {
@@ -146,6 +166,18 @@ function buildPrompt(type: SupportedAIType, prompt: string, data: Record<string,
         "Return valid JSON only. Do not wrap it in markdown. Do not include commentary.",
         "Use this shape exactly: {\"summary\": \"...\", \"warnings\": [\"...\"], \"safeAlternatives\": [\"...\"], \"riskLevel\": \"Low\"}",
         "Review the provided dietary safety data and identify allergy risks, contraindications, and safer alternatives.",
+        `Data:\n${dataText}`,
+        prompt ? `Additional context:\n${prompt}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+    case "prediction":
+      return [
+        "You are a Restaurant Demand Forecasting Analyst.",
+        "Return valid JSON only. Do not wrap it in markdown. Do not include commentary.",
+        "Use this shape exactly: {\"summary\": \"...\", \"predictions\": [{\"title\": \"...\", \"forecast\": \"...\", \"confidence\": 84, \"priority\": \"High\", \"action\": \"...\"}]}",
+        "Use the provided active order, analytics, and inventory data to forecast demand, low-stock risks, peak hours, food waste, trending dishes, and healthy-meal demand. Keep predictions practical and avoid claiming certainty.",
         `Data:\n${dataText}`,
         prompt ? `Additional context:\n${prompt}` : "",
       ]
