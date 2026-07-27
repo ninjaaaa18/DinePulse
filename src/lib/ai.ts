@@ -68,7 +68,7 @@ export async function generateAIResponse(
       rawMessage.toLowerCase().includes("quota")
     ) {
       statusCode = 429;
-      friendlyMessage = "Gemini AI rate limit reached. Please wait a moment and try again.";
+      friendlyMessage = "Gemini AI is temporarily busy due to rate limits. Please wait a minute and try again.";
     } else if (
       rawMessage.includes("503") ||
       rawMessage.includes("UNAVAILABLE") ||

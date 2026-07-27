@@ -31,7 +31,7 @@ export function handleAIError(error: unknown, response?: Response | null, rawPay
   // Handle HTTP status codes
   const status = response?.status;
   if (status === 429) {
-    return "AI assistant rate limit reached. Please wait a moment and try again.";
+    return "Gemini AI is temporarily busy due to rate limits. Please wait a minute and try again.";
   }
   if (status === 503) {
     return "AI service is temporarily busy. Please try again in a few seconds.";
@@ -54,7 +54,7 @@ export function handleAIError(error: unknown, response?: Response | null, rawPay
       // Prevent exposing raw JSON error strings like `{"error":{"code":429...}}`
       if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
         if (trimmed.includes("429") || trimmed.includes("RESOURCE_EXHAUSTED")) {
-          return "AI assistant rate limit reached. Please wait a moment and try again.";
+          return "Gemini AI is temporarily busy due to rate limits. Please wait a minute and try again.";
         }
         if (trimmed.includes("503") || trimmed.includes("UNAVAILABLE")) {
           return "AI service is temporarily busy. Please try again in a few seconds.";
@@ -85,41 +85,76 @@ export async function callAIAPI<T = Record<string, unknown>>(
   body: { type: string; prompt?: string; data?: Record<string, unknown> },
   timeoutMs = 25000,
 ): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const MAX_RETRIES = 3;
 
-  let response: Response | null = null;
-  let rawPayload: unknown = null;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    response = await fetch("/api/ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
+    let response: Response | null = null;
+    let rawPayload: unknown = null;
 
-    rawPayload = await response.json().catch(() => null);
+    try {
+      response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
 
-    if (!response.ok || !rawPayload || (typeof rawPayload === "object" && !(rawPayload as Record<string, unknown>).success)) {
-      const friendlyError = handleAIError(null, response, rawPayload);
-      throw new Error(friendlyError);
+      rawPayload = await response.json().catch(() => null);
+
+      if (response.status === 429) {
+        if (attempt < MAX_RETRIES) {
+          clearTimeout(timer);
+          const retryAfter = response.headers.get("Retry-After");
+          const delayMs = retryAfter
+            ? parseInt(retryAfter, 10) * 1000
+            : Math.min(1000 * Math.pow(2, attempt), 8000);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+        const friendlyError = handleAIError(null, response, rawPayload);
+        throw new Error(friendlyError);
+      }
+
+      if (
+        !response.ok ||
+        !rawPayload ||
+        (typeof rawPayload === "object" &&
+          !(rawPayload as Record<string, unknown>).success)
+      ) {
+        const friendlyError = handleAIError(null, response, rawPayload);
+        throw new Error(friendlyError);
+      }
+
+      const payloadObj = rawPayload as AIResponsePayload<T>;
+      if (!payloadObj.analysis) {
+        throw new Error("Received incomplete response from AI service.");
+      }
+
+      return payloadObj.analysis;
+    } catch (err) {
+      clearTimeout(timer);
+
+      if (
+        err instanceof Error &&
+        err.message &&
+        !err.message.includes("fetch") &&
+        err.name !== "AbortError" &&
+        response?.ok === false
+      ) {
+        throw err;
+      }
+
+      const friendlyMessage = handleAIError(err, response, rawPayload);
+      throw new Error(friendlyMessage);
+    } finally {
+      clearTimeout(timer);
     }
-
-    const payloadObj = rawPayload as AIResponsePayload<T>;
-    if (!payloadObj.analysis) {
-      throw new Error("Received incomplete response from AI service.");
-    }
-
-    return payloadObj.analysis;
-  } catch (err) {
-    if (err instanceof Error && err.message && !err.message.includes("fetch") && err.name !== "AbortError" && response?.ok === false) {
-      throw err;
-    }
-
-    const friendlyMessage = handleAIError(err, response, rawPayload);
-    throw new Error(friendlyMessage);
-  } finally {
-    clearTimeout(timer);
   }
+
+  throw new Error(
+    "Gemini AI is temporarily busy due to rate limits. Please wait a minute and try again.",
+  );
 }
