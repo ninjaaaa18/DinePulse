@@ -120,10 +120,28 @@ export async function signUpWithEmail(email: string, password: string, name: str
 }
 
 /**
+ * Resolve the base URL for OAuth redirects.
+ *
+ * Priority:
+ *  1. NEXT_PUBLIC_SITE_URL (explicitly set for production)
+ *  2. window.location.origin (works in both dev and prod)
+ *  3. Empty string fallback
+ */
+function getOAuthRedirectOrigin(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return "";
+}
+
+/**
  * Sign in / Sign up using Google OAuth.
  */
 export async function signInWithGoogle() {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = getOAuthRedirectOrigin();
   return await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
