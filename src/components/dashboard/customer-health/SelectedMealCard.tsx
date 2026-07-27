@@ -77,7 +77,7 @@ export default function SelectedMealCard() {
         <ul className="space-y-3">
           {items.map((item) => (
             <li
-              key={item.name}
+              key={`selected-meal-${item.name}`}
               className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 transition-colors hover:border-emerald/20 hover:bg-white/[0.04]"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald/20 to-emerald/5 text-xl">

@@ -55,21 +55,28 @@ function HighlightText({ text, query }: { text: string; query: string }) {
 
   const regex = new RegExp(`(${trimmed.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")})`, "gi");
   const parts = text.split(regex);
+  let matchCount = 0;
+  let textCount = 0;
 
   return (
     <span>
-      {parts.map((part, index) =>
-        part.toLowerCase() === trimmed.toLowerCase() ? (
+      {parts.map((part) => {
+        const isMatch = part.toLowerCase() === trimmed.toLowerCase();
+        const key = isMatch
+          ? `highlight-match-${part.slice(0, 8)}-${++matchCount}`
+          : `highlight-text-${part.slice(0, 8)}-${++textCount}`;
+
+        return isMatch ? (
           <mark
-            key={index}
+            key={key}
             className="rounded bg-emerald/25 px-0.5 py-0 font-semibold text-emerald-light"
           >
             {part}
           </mark>
         ) : (
-          <span key={index}>{part}</span>
-        ),
-      )}
+          <span key={key}>{part}</span>
+        );
+      })}
     </span>
   );
 }

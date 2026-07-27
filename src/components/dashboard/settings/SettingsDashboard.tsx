@@ -6,10 +6,12 @@ import Button from "@/components/ui/Button";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
 import { updateRestaurant } from "@/lib/supabase";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 export default function SettingsDashboard() {
   const { user, restaurant, loading: authLoading, signOut, refreshRestaurant } = useAuth();
   const { notify } = useNotifications();
+  const { theme, setTheme } = useTheme();
 
   // Editable restaurant state
   const [name, setName] = useState("");
@@ -18,8 +20,6 @@ export default function SettingsDashboard() {
   const [cuisine, setCuisine] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
 
-  // Preference state
-  const [theme, setTheme] = useState<"system" | "dark" | "light">("dark");
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [stockAlerts, setStockAlerts] = useState(true);
   const [aiSummaries, setAiSummaries] = useState(true);

@@ -4,12 +4,15 @@ import { supabase } from "./client";
 import { getOrCreateRestaurantForUser } from "./auth";
 import {
   baseInventoryState,
+  dedupeInventoryIngredients,
   getInventoryStatus,
   getInventoryWarning,
   getStoredInventoryState,
   persistInventoryState,
   type InventoryIngredient,
 } from "@/lib/orderAnalysis";
+import { getRestaurantSpecificInventory } from "@/lib/restaurantInventoryData";
+import type { Restaurant } from "./menu";
 import type { InventoryInsert, InventoryRow } from "./types";
 
 /**
@@ -133,18 +136,23 @@ export async function syncInventoryToSupabase(
   }
 }
 
-/**
- * Loads inventory from Supabase with fallback to sessionStorage.
- */
-export async function loadInventoryWithFallback(): Promise<InventoryIngredient[]> {
-  const remoteInventory = await fetchInventoryFromSupabase();
-  if (remoteInventory && remoteInventory.length > 0) {
-    // Keep sessionStorage pre-warmed for offline fallback
-    persistInventoryState(remoteInventory);
-    return remoteInventory;
+export async function loadInventoryWithFallback(
+  restaurantOrSlug?: Restaurant | string | null
+): Promise<InventoryIngredient[]> {
+  if (restaurantOrSlug) {
+    const specific = getRestaurantSpecificInventory(restaurantOrSlug);
+    persistInventoryState(specific);
+    return specific;
   }
 
-  return getStoredInventoryState();
+  const remoteInventory = await fetchInventoryFromSupabase();
+  if (remoteInventory && remoteInventory.length > 0) {
+    const deduped = dedupeInventoryIngredients(remoteInventory);
+    persistInventoryState(deduped);
+    return deduped;
+  }
+
+  return dedupeInventoryIngredients(getStoredInventoryState());
 }
 
 /**

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { type ButtonHTMLAttributes, type AnchorHTMLAttributes } from "react";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -41,6 +42,16 @@ export default function Button({
 
   if ("href" in props && props.href) {
     const { href, ...rest } = props;
+    const isInternalRoute = href.startsWith("/") && !href.startsWith("//");
+
+    if (isInternalRoute) {
+      return (
+        <Link href={href} className={classes} {...(rest as AnchorHTMLAttributes<HTMLAnchorElement>)}>
+          {rest.children}
+        </Link>
+      );
+    }
+
     return <a href={href} className={classes} {...rest} />;
   }
 

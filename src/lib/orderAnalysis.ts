@@ -85,7 +85,40 @@ export const baseInventoryState: InventoryIngredient[] = [
   { id: "soft-drink-bottle", name: "Soft Drink Bottle", currentStock: 60, threshold: 10, unit: "bottles", initialStock: 60, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
   { id: "tomato", name: "Tomato", currentStock: 50, threshold: 10, unit: "kg", initialStock: 50, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
   { id: "cucumber", name: "Cucumber", currentStock: 30, threshold: 8, unit: "kg", initialStock: 30, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "paneer", name: "Paneer", currentStock: 40, threshold: 10, unit: "kg", initialStock: 40, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "chicken-meat", name: "Chicken Meat", currentStock: 95, threshold: 15, unit: "kg", initialStock: 95, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "pizza-dough", name: "Pizza Dough Base", currentStock: 55, threshold: 12, unit: "units", initialStock: 55, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "mozzarella", name: "Mozzarella Cheese", currentStock: 45, threshold: 10, unit: "kg", initialStock: 45, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "rice-basmati", name: "Basmati Rice", currentStock: 70, threshold: 15, unit: "kg", initialStock: 70, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "flour-naan", name: "Naan Dough", currentStock: 50, threshold: 10, unit: "kg", initialStock: 50, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "quinoa", name: "Quinoa Grain", currentStock: 30, threshold: 8, unit: "kg", initialStock: 30, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "fruit-mix", name: "Fresh Fruit Mix", currentStock: 40, threshold: 10, unit: "kg", initialStock: 40, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
+  { id: "milk-cream", name: "Dairy Milk & Cream", currentStock: 50, threshold: 12, unit: "liters", initialStock: 50, stockChange: 0, remainingPercent: 100, status: "Healthy", warning: null },
 ];
+
+export function calculateRestaurantHealthScore(params: {
+  inventoryHealth: number;
+  averageMealHealth: number;
+  customerSatisfaction: number;
+  foodWastePercent: number;
+  orderCompletionRate: number;
+}): number {
+  const invScore = Math.min(100, Math.max(0, params.inventoryHealth));
+  const mealScore = Math.min(100, Math.max(0, params.averageMealHealth));
+  const csatScore = Math.min(100, Math.max(0, params.customerSatisfaction));
+  const wasteScore = Math.min(100, Math.max(0, 100 - params.foodWastePercent));
+  const completionScore = Math.min(100, Math.max(0, params.orderCompletionRate));
+
+  const weightedScore = Math.round(
+    invScore * 0.30 +
+    mealScore * 0.25 +
+    csatScore * 0.20 +
+    wasteScore * 0.15 +
+    completionScore * 0.10,
+  );
+
+  return Math.min(100, Math.max(0, weightedScore));
+}
 
 export function getInventoryStatus(currentStock: number, threshold: number, remainingPercent: number): InventoryIngredientStatus {
   if (currentStock <= threshold / 2 || remainingPercent <= 20) {
@@ -238,8 +271,25 @@ export function loadPersistedOrderAnalysisContext(): OrderAnalysisContext | null
   return parseOrderAnalysisContext(persistedValue);
 }
 
+export function dedupeInventoryIngredients(items: InventoryIngredient[]): InventoryIngredient[] {
+  const map = new Map<string, InventoryIngredient>();
+
+  items.forEach((item) => {
+    const key = item.id || item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    if (!map.has(key)) {
+      map.set(key, { ...item, id: key });
+    } else {
+      const existing = map.get(key)!;
+      existing.currentStock = Math.min(existing.currentStock, item.currentStock);
+      existing.initialStock = Math.max(existing.initialStock, item.initialStock);
+    }
+  });
+
+  return Array.from(map.values());
+}
+
 export function getDefaultInventoryState(): InventoryIngredient[] {
-  return cloneInventoryState(baseInventoryState);
+  return dedupeInventoryIngredients(cloneInventoryState(baseInventoryState));
 }
 
 export function getStoredInventoryState(): InventoryIngredient[] {
@@ -254,7 +304,9 @@ export function getStoredInventoryState(): InventoryIngredient[] {
     }
 
     const parsed = JSON.parse(persistedValue);
-    return Array.isArray(parsed) ? (parsed as InventoryIngredient[]) : getDefaultInventoryState();
+    return Array.isArray(parsed)
+      ? dedupeInventoryIngredients(parsed as InventoryIngredient[])
+      : getDefaultInventoryState();
   } catch {
     return getDefaultInventoryState();
   }

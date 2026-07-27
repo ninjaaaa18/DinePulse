@@ -36,17 +36,19 @@ function formatTime(date: Date = new Date()) {
 function FormattedText({ text }: { text: string }) {
   // Simple, clean markdown-like parser for bold text, headers, and bullet points
   const lines = text.split("\n");
+  let lineCounter = 0;
 
   return (
     <div className="space-y-1.5 text-sm leading-relaxed">
-      {lines.map((line, index) => {
+      {lines.map((line) => {
         const trimmed = line.trim();
-        if (!trimmed) return <div key={index} className="h-1" />;
+        const lineKey = `copilot-line-${trimmed.slice(0, 10)}-${++lineCounter}`;
+        if (!trimmed) return <div key={lineKey} className="h-1" />;
 
         if (trimmed.startsWith("###") || trimmed.startsWith("##") || trimmed.startsWith("#")) {
           const title = trimmed.replace(/^#+\s*/, "");
           return (
-            <p key={index} className="font-semibold text-emerald-light">
+            <p key={lineKey} className="font-semibold text-emerald-light">
               {title}
             </p>
           );
@@ -57,19 +59,21 @@ function FormattedText({ text }: { text: string }) {
 
         // Bold formatting parse (**bold**)
         const parts = cleanContent.split(/(\*\*.*?\*\*)/g);
-        const renderedParts = parts.map((part, i) => {
+        let partCount = 0;
+        const renderedParts = parts.map((part) => {
+          const partKey = `copilot-part-${part.slice(0, 10)}-${++partCount}`;
           if (part.startsWith("**") && part.endsWith("**")) {
             return (
-              <strong key={i} className="font-semibold text-white">
+              <strong key={partKey} className="font-semibold text-white">
                 {part.slice(2, -2)}
               </strong>
             );
           }
-          return part;
+          return <span key={partKey}>{part}</span>;
         });
 
         return (
-          <p key={index} className={isBullet ? "pl-3 flex items-start gap-1.5" : ""}>
+          <p key={lineKey} className={isBullet ? "pl-3 flex items-start gap-1.5" : ""}>
             {isBullet ? <span className="text-emerald">•</span> : null}
             <span>{renderedParts}</span>
           </p>

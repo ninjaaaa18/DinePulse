@@ -31,6 +31,49 @@ type NotificationContextValue = {
 const STORAGE_KEY = "dinepulse.notifications";
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
+const defaultInitialNotifications: DinePulseNotification[] = [
+  {
+    id: "notif-1",
+    icon: "📦",
+    title: "Inventory Restock Reminder",
+    description: "Chicken Patty stock is down to 20 servings. Restock suggested before peak dinner hours.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    category: "Inventory",
+    severity: "warning",
+    read: false,
+  },
+  {
+    id: "notif-2",
+    icon: "🥗",
+    title: "Customer Meal Health High",
+    description: "Urban Burger achieved an average meal health score of 88/100 today.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    category: "Health",
+    severity: "success",
+    read: false,
+  },
+  {
+    id: "notif-3",
+    icon: "↗",
+    title: "AI Predictions Updated",
+    description: "Gemini AI generated 6 smart operational predictions for inventory and staff scheduling.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    category: "AI",
+    severity: "ai-generated",
+    read: false,
+  },
+  {
+    id: "notif-4",
+    icon: "📊",
+    title: "Daily Revenue Milestone",
+    description: "Daily revenue crossed ₹18,400 with 142 orders completed.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    category: "Analytics",
+    severity: "information",
+    read: true,
+  },
+];
+
 function createId() {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
@@ -38,17 +81,19 @@ function createId() {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<DinePulseNotification[]>([]);
+  const [notifications, setNotifications] = useState<DinePulseNotification[]>(defaultInitialNotifications);
 
   useEffect(() => {
     try {
       const saved = window.sessionStorage.getItem(STORAGE_KEY);
-      const parsed = saved ? JSON.parse(saved) : [];
-      if (Array.isArray(parsed)) {
-        setNotifications(parsed as DinePulseNotification[]);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setNotifications(parsed as DinePulseNotification[]);
+        }
       }
     } catch {
-      setNotifications([]);
+      setNotifications(defaultInitialNotifications);
     }
   }, []);
 

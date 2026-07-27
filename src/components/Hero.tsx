@@ -44,10 +44,10 @@ export default function Hero() {
           className="animate-fade-in-up mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
           style={{ animationDelay: "0.3s" }}
         >
-          <Button href="#features" size="lg">
+          <Button href="/login" size="lg">
             Get Started
           </Button>
-          <Button href="#how-it-works" variant="secondary" size="lg">
+          <Button href="#features" variant="secondary" size="lg">
             Live Demo
           </Button>
         </div>

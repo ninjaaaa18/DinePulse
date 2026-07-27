@@ -55,7 +55,7 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden md:block">
-          <Button href="#login" variant="secondary" size="sm">
+          <Button href="/login" variant="secondary" size="sm">
             Login
           </Button>
         </div>
@@ -87,7 +87,7 @@ export default function Navbar() {
             ))}
             <li className="pt-2">
               <Button
-                href="#login"
+                href="/login"
                 variant="secondary"
                 size="sm"
                 className="w-full"

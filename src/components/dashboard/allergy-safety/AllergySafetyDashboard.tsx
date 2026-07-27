@@ -188,13 +188,18 @@ export default function AllergySafetyDashboard() {
     }
   }
 
-  // Derive ingredient screening cards strictly from orderContext items
+  // Derive ingredient screening cards strictly from orderContext items (deduplicated by dish name)
   const ingredientCards: Array<{
+    id: string;
     name: string;
     note: string;
     status: IngredientStatus;
-  }> = orderContext
-    ? orderContext.items.map((item) => {
+  }> = (() => {
+    if (!orderContext) return [];
+    const map = new Map<string, { id: string; name: string; note: string; status: IngredientStatus }>();
+
+    orderContext.items.forEach((item) => {
+      if (!map.has(item.name)) {
         const itemAllergens = item.allergens.filter((a) => a !== "None");
         const matchesAllergy = itemAllergens.some((a) => selectedAllergies.includes(a));
         const status: IngredientStatus = matchesAllergy
@@ -209,30 +214,44 @@ export default function AllergySafetyDashboard() {
           ? `Contains allergens: ${itemAllergens.join(", ")}.`
           : "No major allergen flags detected.";
 
-        return {
+        map.set(item.name, {
+          id: `ing-${item.id || item.name}`,
           name: item.name,
           note,
           status,
-        };
-      })
-    : [];
+        });
+      }
+    });
 
-  const alternativeCards = orderContext
-    ? orderContext.items
-        .filter((item) => item.sugar > 20 || item.sodium > 600 || item.allergens.some((a) => a !== "None"))
-        .map((item) => ({
-          title: `Replace ${item.name}`,
-          from: item.name,
-          to: item.name.toLowerCase().includes("soda") || item.name.toLowerCase().includes("coke")
-            ? "Fresh Lime Soda"
-            : item.name.toLowerCase().includes("fries")
-            ? "Garden Salad"
-            : "Grilled Veg Bowl",
-          scoreBefore: orderContext.averageMealScore,
-          scoreAfter: Math.min(98, orderContext.averageMealScore + 10),
-          detail: `Swapping ${item.name} improves nutritional alignment and reduces health risk flags.`,
-        }))
-    : [];
+    return Array.from(map.values());
+  })();
+
+  const alternativeCards = (() => {
+    if (!orderContext) return [];
+    const map = new Map<string, { id: string; title: string; from: string; to: string; scoreBefore: number; scoreAfter: number; detail: string }>();
+
+    orderContext.items
+      .filter((item) => item.sugar > 20 || item.sodium > 600 || item.allergens.some((a) => a !== "None"))
+      .forEach((item) => {
+        if (!map.has(item.name)) {
+          map.set(item.name, {
+            id: `alt-${item.id || item.name}`,
+            title: `Replace ${item.name}`,
+            from: item.name,
+            to: item.name.toLowerCase().includes("soda") || item.name.toLowerCase().includes("coke")
+              ? "Fresh Lime Soda"
+              : item.name.toLowerCase().includes("fries")
+              ? "Garden Salad"
+              : "Grilled Veg Bowl",
+            scoreBefore: orderContext.averageMealScore,
+            scoreAfter: Math.min(98, orderContext.averageMealScore + 10),
+            detail: `Swapping ${item.name} improves nutritional alignment and reduces health risk flags.`,
+          });
+        }
+      });
+
+    return Array.from(map.values());
+  })();
 
   return (
     <div className="space-y-6">

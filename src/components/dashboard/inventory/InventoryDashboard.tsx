@@ -33,17 +33,21 @@ function getProgressColor(status: InventoryIngredient["status"]) {
   }
 }
 
+import { getRestaurantSpecificInventory } from "@/lib/restaurantInventoryData";
+
 export default function InventoryDashboard() {
-  const { activeOrder } = useActiveOrder();
+  const { activeOrder, selectedRestaurant } = useActiveOrder();
   const { notify } = useNotifications();
-  const [inventory, setInventory] = useState<InventoryIngredient[]>(() => getStoredInventoryState());
+  const [inventory, setInventory] = useState<InventoryIngredient[]>(() =>
+    getRestaurantSpecificInventory(selectedRestaurant)
+  );
   const [warningCount, setWarningCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
-      const nextInventory = await loadInventoryWithFallback();
+      const nextInventory = await loadInventoryWithFallback(selectedRestaurant);
       if (!isMounted) return;
 
       setInventory(nextInventory);
@@ -77,7 +81,7 @@ export default function InventoryDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [activeOrder, notify]);
+  }, [selectedRestaurant, activeOrder, notify]);
 
   useEffect(() => {
     setWarningCount(inventory.filter((item) => item.warning).length);

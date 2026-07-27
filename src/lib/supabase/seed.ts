@@ -8,7 +8,7 @@ let seedingPromise: Promise<void> | null = null;
 
 /**
  * Automatically seeds initial production data (Restaurants, Menu Items, Inventory, Recipes)
- * into Supabase PostgreSQL when tables are empty.
+ * into Supabase PostgreSQL when tables are missing production data.
  * Guarantees zero duplicate records via count checks and unique key matching.
  */
 export async function seedDatabaseIfEmpty(): Promise<void> {
@@ -18,26 +18,20 @@ export async function seedDatabaseIfEmpty(): Promise<void> {
 
   seedingPromise = (async () => {
     try {
-      // 1. Seed RESTAURANTS if empty
-      const { count: restaurantCount } = await supabase
-        .from("restaurants")
-        .select("id", { count: "exact", head: true });
+      // 1. Ensure all 6 production restaurants exist in Supabase
+      const restaurantInserts = fallbackRestaurants.map((r) => ({
+        id: r.id,
+        slug: r.slug || r.id,
+        name: r.name,
+        cuisine: r.cuisine,
+        description: r.description,
+        delivery_time: r.deliveryTime,
+        logo: r.logo,
+        health_score: 92,
+        is_active: true,
+      }));
 
-      if (restaurantCount === 0) {
-        console.log("[Supabase Seed] Restaurants table is empty. Seeding production restaurants...");
-        const restaurantInserts = fallbackRestaurants.map((r) => ({
-          slug: r.slug || r.id,
-          name: r.name,
-          cuisine: r.cuisine,
-          description: r.description,
-          delivery_time: r.deliveryTime,
-          logo: r.logo,
-          health_score: 92,
-          is_active: true,
-        }));
-
-        await supabase.from("restaurants").upsert(restaurantInserts, { onConflict: "slug" });
-      }
+      await supabase.from("restaurants").upsert(restaurantInserts, { onConflict: "slug" });
 
       // Query active restaurants to get UUID mappings
       const { data: dbRestaurants } = await supabase
@@ -47,22 +41,23 @@ export async function seedDatabaseIfEmpty(): Promise<void> {
       const restMap = new Map<string, string>();
       dbRestaurants?.forEach((r) => {
         if (r.slug) restMap.set(r.slug, r.id);
+        if (r.id) restMap.set(r.id, r.id);
         restMap.set(r.name.toLowerCase(), r.id);
       });
 
       const defaultRestId = dbRestaurants?.[0]?.id || null;
 
-      // 2. Seed MENU ITEMS if empty
+      // 2. Seed MENU ITEMS if missing
       const { count: menuCount } = await supabase
         .from("menu_items")
         .select("id", { count: "exact", head: true });
 
-      if (menuCount === 0 && dbRestaurants && dbRestaurants.length > 0) {
-        console.log("[Supabase Seed] Menu Items table is empty. Seeding production menu items...");
+      if ((menuCount === null || menuCount < 10) && dbRestaurants && dbRestaurants.length > 0) {
+        console.log("[Supabase Seed] Seeding production menu items across all 6 restaurants...");
         const menuItemInserts: MenuItemInsert[] = [];
 
         fallbackRestaurants.forEach((rest) => {
-          const restId = restMap.get(rest.slug || rest.id) || restMap.get(rest.name.toLowerCase()) || defaultRestId;
+          const restId = restMap.get(rest.slug || rest.id) || restMap.get(rest.id) || restMap.get(rest.name.toLowerCase()) || defaultRestId;
           if (!restId) return;
 
           rest.items.forEach((item) => {
@@ -88,7 +83,7 @@ export async function seedDatabaseIfEmpty(): Promise<void> {
         });
 
         if (menuItemInserts.length > 0) {
-          await supabase.from("menu_items").insert(menuItemInserts);
+          await supabase.from("menu_items").upsert(menuItemInserts, { onConflict: "restaurant_id,slug" });
         }
       }
 
@@ -97,7 +92,7 @@ export async function seedDatabaseIfEmpty(): Promise<void> {
         .from("inventory")
         .select("id", { count: "exact", head: true });
 
-      if (inventoryCount === 0) {
+      if (inventoryCount === 0 || inventoryCount === null) {
         console.log("[Supabase Seed] Inventory table is empty. Seeding production ingredients...");
         const inventoryInserts = baseInventoryState.map((item) => ({
           restaurant_id: defaultRestId,
@@ -119,7 +114,7 @@ export async function seedDatabaseIfEmpty(): Promise<void> {
         .from("recipes")
         .select("id", { count: "exact", head: true });
 
-      if (recipeCount === 0) {
+      if (recipeCount === 0 || recipeCount === null) {
         console.log("[Supabase Seed] Recipes table is empty. Generating recipe ingredient mappings...");
         const [{ data: dbMenuItems }, { data: dbInventoryItems }] = await Promise.all([
           supabase.from("menu_items").select("id, name, slug"),

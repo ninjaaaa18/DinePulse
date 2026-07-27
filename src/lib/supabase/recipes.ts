@@ -30,10 +30,57 @@ export const fallbackRecipeMap: Record<string, Array<{ id: string; quantity: num
     { id: "sauce", quantity: 1 },
     { id: "cheese-slice", quantity: 1 },
   ],
+  pizza: [
+    { id: "pizza-dough", quantity: 1 },
+    { id: "mozzarella", quantity: 1 },
+    { id: "tomato", quantity: 1 },
+    { id: "sauce", quantity: 1 },
+  ],
+  paneer: [
+    { id: "paneer", quantity: 1 },
+    { id: "tomato", quantity: 1 },
+    { id: "sauce", quantity: 1 },
+    { id: "cooking-oil", quantity: 1 },
+  ],
+  chicken: [
+    { id: "chicken-meat", quantity: 1 },
+    { id: "cooking-oil", quantity: 1 },
+    { id: "sauce", quantity: 1 },
+  ],
+  steak: [
+    { id: "chicken-meat", quantity: 1 },
+    { id: "burger-bun", quantity: 1 },
+    { id: "cheese-slice", quantity: 1 },
+  ],
+  wings: [
+    { id: "chicken-meat", quantity: 1 },
+    { id: "sauce", quantity: 1 },
+    { id: "cooking-oil", quantity: 1 },
+  ],
+  naan: [
+    { id: "flour-naan", quantity: 1 },
+    { id: "cooking-oil", quantity: 1 },
+  ],
+  biryani: [
+    { id: "rice-basmati", quantity: 1 },
+    { id: "chicken-meat", quantity: 1 },
+    { id: "cooking-oil", quantity: 1 },
+  ],
+  bowl: [
+    { id: "quinoa", quantity: 1 },
+    { id: "lettuce", quantity: 1 },
+    { id: "tomato", quantity: 1 },
+    { id: "cucumber", quantity: 1 },
+  ],
+  toast: [
+    { id: "burger-bun", quantity: 1 },
+    { id: "tomato", quantity: 1 },
+  ],
   drink: [{ id: "soft-drink-bottle", quantity: 1 }],
-  beverage: [{ id: "soft-drink-bottle", quantity: 1 }],
-  lemonade: [{ id: "soft-drink-bottle", quantity: 1 }],
-  smoothie: [{ id: "soft-drink-bottle", quantity: 1 }],
+  dessert: [
+    { id: "milk-cream", quantity: 1 },
+    { id: "fruit-mix", quantity: 1 },
+  ],
 };
 
 /**
@@ -43,20 +90,43 @@ export function getFallbackRecipe(itemName: string, itemId: string): Array<{ id:
   const normalizedKey = `${itemName} ${itemId}`.toLowerCase();
 
   if (normalizedKey.includes("burger")) return fallbackRecipeMap.burger;
-  if (normalizedKey.includes("fries")) return fallbackRecipeMap.fries;
+  if (normalizedKey.includes("fries") || normalizedKey.includes("rings")) return fallbackRecipeMap.fries;
   if (normalizedKey.includes("salad")) return fallbackRecipeMap.salad;
   if (normalizedKey.includes("wrap")) return fallbackRecipeMap.wrap;
+  if (normalizedKey.includes("pizza") || normalizedKey.includes("bread") || normalizedKey.includes("sticks")) return fallbackRecipeMap.pizza;
+  if (normalizedKey.includes("paneer")) return fallbackRecipeMap.paneer;
+  if (normalizedKey.includes("biryani")) return fallbackRecipeMap.biryani;
+  if (normalizedKey.includes("naan")) return fallbackRecipeMap.naan;
+  if (normalizedKey.includes("bowl")) return fallbackRecipeMap.bowl;
+  if (normalizedKey.includes("steak")) return fallbackRecipeMap.steak;
+  if (normalizedKey.includes("wings")) return fallbackRecipeMap.wings;
+  if (normalizedKey.includes("chicken")) return fallbackRecipeMap.chicken;
+  if (normalizedKey.includes("toast")) return fallbackRecipeMap.toast;
   if (
     normalizedKey.includes("drink") ||
+    normalizedKey.includes("cola") ||
+    normalizedKey.includes("soda") ||
     normalizedKey.includes("lemonade") ||
     normalizedKey.includes("smoothie") ||
     normalizedKey.includes("coke") ||
-    normalizedKey.includes("lassi")
+    normalizedKey.includes("juice") ||
+    normalizedKey.includes("shake") ||
+    normalizedKey.includes("ale")
   ) {
     return fallbackRecipeMap.drink;
   }
+  if (
+    normalizedKey.includes("brownie") ||
+    normalizedKey.includes("ice cream") ||
+    normalizedKey.includes("sundae") ||
+    normalizedKey.includes("cake") ||
+    normalizedKey.includes("cup") ||
+    normalizedKey.includes("fruit")
+  ) {
+    return fallbackRecipeMap.dessert;
+  }
 
-  return [];
+  return fallbackRecipeMap.burger;
 }
 
 /**

@@ -47,31 +47,35 @@ export async function getOrCreateRestaurantForUser(
       }
     }
 
-    // 3. Create default restaurant profile for new user
-    const userFullName =
-      user.user_metadata?.name ||
-      user.user_metadata?.full_name ||
-      user.email?.split("@")[0] ||
-      "DinePulse Partner";
+    // 3. Link user to primary production restaurant ("Urban Burger")
+    const { data: primaryRest } = await supabase
+      .from("restaurants")
+      .select("*")
+      .eq("slug", "urban-burger")
+      .maybeSingle();
 
-    const restaurantName = userFullName.toLowerCase().endsWith("restaurant")
-      ? userFullName
-      : `${userFullName}'s Kitchen`;
+    if (primaryRest) {
+      const { data: updated } = await supabase
+        .from("restaurants")
+        .update({ user_id: user.id })
+        .eq("id", primaryRest.id)
+        .select()
+        .single();
 
-    const slug = restaurantName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+      return { data: updated || primaryRest, error: null };
+    }
 
+    // Fallback: Create Urban Burger with deterministic UUID if missing
     const newRestaurant = {
+      id: "11111111-1111-4111-a111-111111111111",
       user_id: user.id,
-      name: restaurantName,
+      name: "Urban Burger",
+      slug: "urban-burger",
       email: user.email ?? null,
-      slug: `${slug}-${Date.now().toString().slice(-4)}`,
-      cuisine: "Multi-Cuisine",
-      description: "Smart AI-driven restaurant powered by DinePulse.",
-      delivery_time: "20–30 min",
-      logo: "🍴",
+      cuisine: "Burgers & Fast Food",
+      description: "Gourmet handcrafted burgers with crispy sides and signature dips.",
+      delivery_time: "15–22 min",
+      logo: "🍔",
       health_score: 92,
       is_active: true,
     };

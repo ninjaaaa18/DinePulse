@@ -1,21 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Card from "@/components/cards/Card";
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import { getStoredAnalyticsSnapshot, type AnalyticsSnapshot } from "@/lib/orderAnalysis";
 import { loadAnalyticsWithFallback } from "@/lib/supabase";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
+import { getRestaurantSpecificAnalytics } from "@/lib/restaurantAnalyticsData";
 
 function formatCurrency(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
 export default function AnalyticsDashboard() {
-  const { activeOrder } = useActiveOrder();
+  const { activeOrder, selectedRestaurant } = useActiveOrder();
   const { notify } = useNotifications();
-  const [analytics, setAnalytics] = useState<AnalyticsSnapshot>(() => getStoredAnalyticsSnapshot());
+  const [liveAnalytics, setLiveAnalytics] = useState<AnalyticsSnapshot>(() => getStoredAnalyticsSnapshot());
 
   useEffect(() => {
     let isMounted = true;
@@ -24,7 +25,7 @@ export default function AnalyticsDashboard() {
       const nextAnalytics = await loadAnalyticsWithFallback();
       if (!isMounted) return;
 
-      setAnalytics(nextAnalytics);
+      setLiveAnalytics(nextAnalytics);
 
       if (activeOrder) {
         notify({
@@ -45,13 +46,18 @@ export default function AnalyticsDashboard() {
     };
   }, [activeOrder, notify]);
 
+  const analytics = useMemo(
+    () => getRestaurantSpecificAnalytics(selectedRestaurant, liveAnalytics),
+    [selectedRestaurant, liveAnalytics]
+  );
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <p className="text-sm font-medium uppercase tracking-[0.3em] text-emerald">Analytics</p>
         <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Dynamic restaurant analytics</h1>
         <p className="max-w-3xl text-sm text-muted sm:text-base">
-          Performance is updated automatically from the shared order context across the dashboard.
+          Performance metrics for your selected restaurant, updated in real time with order insights and trends.
         </p>
       </header>
 
@@ -70,7 +76,7 @@ export default function AnalyticsDashboard() {
         </Card>
         <Card className="space-y-2">
           <p className="text-sm text-muted">Calories Served Today</p>
-          <p className="text-2xl font-semibold text-white">{analytics.caloriesServed}</p>
+          <p className="text-2xl font-semibold text-white">{analytics.caloriesServed.toLocaleString("en-IN")}</p>
         </Card>
       </section>
 
@@ -150,12 +156,14 @@ export default function AnalyticsDashboard() {
             <p className="text-sm text-muted">Most frequent dishes in recent orders</p>
           </div>
           <div className="space-y-3">
-            {analytics.topSellingFoods.length > 0 ? analytics.topSellingFoods.map((item) => (
-              <div key={item.label} className="flex items-center justify-between rounded-2xl border border-white/10 bg-background/60 p-3 text-sm text-white">
-                <span>{item.label}</span>
-                <span className="text-emerald">x{item.value}</span>
-              </div>
-            )) : (
+            {analytics.topSellingFoods.length > 0 ? (
+              analytics.topSellingFoods.map((item) => (
+                <div key={item.label} className="flex items-center justify-between rounded-2xl border border-white/10 bg-background/60 p-3 text-sm text-white">
+                  <span>{item.label}</span>
+                  <span className="text-emerald font-semibold">x{item.value}</span>
+                </div>
+              ))
+            ) : (
               <div className="rounded-2xl border border-dashed border-white/10 p-3 text-sm text-muted">
                 Orders will appear here once the flow is used.
               </div>

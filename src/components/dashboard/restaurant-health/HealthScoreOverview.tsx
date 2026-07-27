@@ -1,12 +1,53 @@
+"use client";
+
 import Card from "@/components/cards/Card";
 import {
   overallHealth,
   trendIcons,
   trendStyles,
 } from "@/components/dashboard/restaurant-health/restaurantHealthData";
+import {
+  calculateRestaurantHealthScore,
+  getStoredAnalyticsSnapshot,
+  getStoredInventoryState,
+} from "@/lib/orderAnalysis";
 
 export default function HealthScoreOverview() {
-  const { score, maxScore, status, statusEmoji } = overallHealth;
+  const analytics = getStoredAnalyticsSnapshot();
+  const inventory = getStoredInventoryState();
+
+  const healthyInvCount = inventory.filter(
+    (i) => i.status === "Healthy" || i.status === "Medium",
+  ).length;
+  const inventoryHealth =
+    inventory.length > 0
+      ? Math.round((healthyInvCount / inventory.length) * 100)
+      : 90;
+
+  const averageMealHealth = analytics.averageMealHealthScore || 88;
+  const customerSatisfaction = analytics.averageCustomerSatisfaction || 94;
+  const foodWastePercent = 8;
+  const orderCompletionRate = 98;
+
+  const score = calculateRestaurantHealthScore({
+    inventoryHealth,
+    averageMealHealth,
+    customerSatisfaction,
+    foodWastePercent,
+    orderCompletionRate,
+  });
+
+  const maxScore = 100;
+  const status =
+    score >= 90
+      ? "Excellent"
+      : score >= 80
+      ? "Good"
+      : score >= 70
+      ? "Fair"
+      : "Poor";
+  const statusEmoji = score >= 90 ? "🟢" : score >= 80 ? "🟢" : score >= 70 ? "🟡" : "🔴";
+
   const percentage = (score / maxScore) * 100;
   const circumference = 2 * Math.PI * 88;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;

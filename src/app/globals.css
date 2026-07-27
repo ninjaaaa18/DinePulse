@@ -10,6 +10,33 @@
   --surface-hover: #27272a;
   --border: rgba(255, 255, 255, 0.08);
   --muted: #a1a1aa;
+  color-scheme: dark;
+}
+
+html.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --emerald: #059669;
+  --emerald-light: #10b981;
+  --emerald-dark: #047857;
+  --surface: #ffffff;
+  --surface-hover: #f1f5f9;
+  --border: rgba(15, 23, 42, 0.12);
+  --muted: #64748b;
+  color-scheme: light;
+}
+
+html.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --emerald: #10b981;
+  --emerald-light: #34d399;
+  --emerald-dark: #059669;
+  --surface: #18181b;
+  --surface-hover: #27272a;
+  --border: rgba(255, 255, 255, 0.08);
+  --muted: #a1a1aa;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -27,12 +54,64 @@
 
 html {
   scroll-behavior: smooth;
+  transition: background-color 250ms ease, color 250ms ease;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  transition: background-color 250ms ease, color 250ms ease;
+}
+
+/* Light Mode Adaptive Component Styling Overrides */
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+html.light .bg-surface {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-surface\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+html.light .bg-surface\/80 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.light .bg-background\/60,
+html.light .bg-background\/80,
+html.light .bg-background\/50,
+html.light .bg-background\/40 {
+  background-color: rgba(248, 250, 252, 0.9) !important;
+}
+
+html.light .bg-white\/5,
+html.light .bg-white\/10,
+html.light .bg-white\/\[0\.02\],
+html.light .bg-white\/\[0\.04\] {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light .border-white\/5,
+html.light .border-white\/10,
+html.light .border-white\/20 {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html.light .text-muted {
+  color: #64748b !important;
+}
+
+html.light input,
+html.light textarea {
+  color: #0f172a !important;
+}
+
+html.light ::placeholder {
+  color: #94a3b8 !important;
 }
 
 ::selection {
