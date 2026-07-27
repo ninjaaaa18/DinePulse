@@ -12,6 +12,7 @@ import { fallbackRestaurants, type Restaurant } from "@/lib/supabase/menu";
 type ActiveOrderContextValue = {
   activeOrder: OrderAnalysisContext | null;
   setActiveOrder: (order: OrderAnalysisContext) => void;
+  clearActiveOrder: () => void;
   selectedRestaurant: Restaurant;
   setSelectedRestaurant: (restaurant: Restaurant) => void;
 };
@@ -111,6 +112,13 @@ export function ActiveOrderProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const clearActiveOrder = useCallback(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("dinepulse.order-context");
+    }
+    setActiveOrderState(null);
+  }, []);
+
   const setSelectedRestaurant = useCallback((restaurant: Restaurant) => {
     setSelectedRestaurantState(restaurant);
     if (typeof window !== "undefined") {
@@ -120,7 +128,7 @@ export function ActiveOrderProvider({ children }: { children: ReactNode }) {
 
   return (
     <ActiveOrderContext.Provider
-      value={{ activeOrder, setActiveOrder, selectedRestaurant, setSelectedRestaurant }}
+      value={{ activeOrder, setActiveOrder, clearActiveOrder, selectedRestaurant, setSelectedRestaurant }}
     >
       {children}
     </ActiveOrderContext.Provider>

@@ -24,15 +24,12 @@ type CartItem = MenuItem & {
 };
 
 const analysisSteps = [
-  { label: "Order received", description: "Your basket is ready for review" },
-  { label: "Menu items identified", description: "Restaurant selections mapped" },
-  { label: "Calculating nutrition", description: "Macro and calorie totals are being estimated" },
-  { label: "Checking allergies", description: "Potential allergen risks are being flagged" },
-  { label: "Checking medical conditions", description: "Health-sensitive preferences are being reviewed" },
-  { label: "Estimating meal health score", description: "A balanced score is being prepared" },
-  { label: "Updating restaurant health", description: "Restaurant context is being incorporated" },
-  { label: "Generating AI recommendations", description: "Insights are being synthesized" },
-  { label: "Finalizing analysis", description: "Your review is almost ready" },
+  { label: "Validating basket", description: "Checking item availability and pricing" },
+  { label: "Connecting to restaurant", description: "Establishing a secure order channel" },
+  { label: "Saving your order", description: "Persisting order to the database" },
+  { label: "Applying inventory", description: "Deducting ingredient quantities" },
+  { label: "Logging analytics", description: "Recording revenue and meal metrics" },
+  { label: "Order confirmed!", description: "Redirecting to your orders" },
 ] as const;
 
 function getEstimatedMealScore(item: MenuItem) {
@@ -168,7 +165,10 @@ export default function OrderFoodDashboard() {
       if (stepCount >= analysisSteps.length) {
         window.clearInterval(intervalId);
         window.setTimeout(() => {
-          router.push("/dashboard/customer-health");
+          setCart([]);
+          setIsProcessing(false);
+          setProcessingContext(null);
+          router.push("/dashboard/my-orders");
         }, 600);
       }
     }, 500);
@@ -208,25 +208,25 @@ export default function OrderFoodDashboard() {
     const updatedInventory = applyOrderToInventory(context);
     const lowStockItems = updatedInventory.filter((item) => item.warning);
     notify({
-      icon: "✓",
-      title: "Order completed",
-      description: `${context.items.length} dish${context.items.length === 1 ? "" : "es"} from ${restaurant.name} is ready for analysis.`,
+      icon: "🛒",
+      title: "New order received",
+      description: `${context.items.length} dish${context.items.length === 1 ? "" : "es"} from ${restaurant.name} — ₹${subtotal.toLocaleString("en-IN")}.`,
       category: "Orders",
       severity: "success",
-      dedupeKey: `order-completed-${context.orderId}`,
+      dedupeKey: `order-placed-${context.orderId}`,
     });
     notify({
       icon: "₹",
-      title: "Analytics updated",
-      description: `Revenue increased by ₹${subtotal.toLocaleString("en-IN")} from the latest order.`,
+      title: "Revenue updated",
+      description: `+₹${subtotal.toLocaleString("en-IN")} from this order.`,
       category: "AI Insights",
       severity: "information",
-      dedupeKey: `analytics-update-${context.orderId}`,
+      dedupeKey: `revenue-update-${context.orderId}`,
     });
     notify({
-      icon: "□",
-      title: "Inventory updated",
-      description: "Ingredient stock has been adjusted for the completed order.",
+      icon: "📦",
+      title: "Inventory adjusted",
+      description: "Ingredient stock deducted for this order.",
       category: "Inventory",
       severity: "information",
       dedupeKey: `inventory-update-${context.orderId}`,
@@ -283,13 +283,13 @@ export default function OrderFoodDashboard() {
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-xl">
                 <p className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald">
-                  AI processing
+                  Placing order
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold text-white">
-                  🤖 DinePulse AI is analyzing your order...
+                  🛵 Your order is being placed...
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
-                  Your selected dishes are being translated into a nutrition-aware review with restaurant and allergy context.
+                  We&apos;re processing your basket and preparing it for the restaurant.
                 </p>
               </div>
 
@@ -346,7 +346,7 @@ export default function OrderFoodDashboard() {
                             : "border-white/10 text-muted"
                         }`}
                       >
-                        {completed ? "✓" : step.label.includes("Order") ? "🍽" : step.label.includes("Menu") ? "✅" : step.label.includes("nutrition") ? "🥗" : step.label.includes("allergies") ? "🩺" : step.label.includes("medical") ? "❤️" : step.label.includes("score") ? "📊" : step.label.includes("restaurant") ? "🏥" : step.label.includes("recommendations") ? "🤖" : "✨"}
+                        {completed ? "✓" : step.label.includes("Validating") ? "🛒" : step.label.includes("Connecting") ? "🔗" : step.label.includes("Saving") ? "💾" : step.label.includes("Applying") ? "📦" : step.label.includes("Logging") ? "📊" : "✨"}
                       </div>
                       <div>
                         <p className={`font-medium ${completed || active ? "text-white" : "text-muted"}`}>
@@ -374,7 +374,7 @@ export default function OrderFoodDashboard() {
           Restaurant ordering experience
         </h1>
         <p className="max-w-3xl text-sm text-muted sm:text-base">
-          Pick a restaurant, build your basket, and review your order with a polished SaaS-ready flow.
+          Pick a restaurant, build your basket, and place your order.
         </p>
       </header>
 
@@ -600,7 +600,7 @@ export default function OrderFoodDashboard() {
             </div>
 
             <Button variant="primary" size="md" onClick={handleProceed} className="w-full transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]">
-              Proceed to Analysis
+              Place Order
             </Button>
 
             {analysisMessage ? (

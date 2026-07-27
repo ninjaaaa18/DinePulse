@@ -10,14 +10,18 @@ import AIRecommendations from "@/components/dashboard/AIRecommendations";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
+import { useNotifications } from "@/components/dashboard/NotificationProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
+  applyOrderToInventory,
   getStoredAnalyticsSnapshot,
   getStoredInventoryState,
   type AnalyticsSnapshot,
   type InventoryIngredient,
+  type OrderAnalysisContext,
 } from "@/lib/orderAnalysis";
-import { loadAnalyticsWithFallback, loadInventoryWithFallback } from "@/lib/supabase";
+import { getOrders, getOrderWithItems, updateOrderStatus, loadAnalyticsWithFallback, loadInventoryWithFallback } from "@/lib/supabase";
+import type { OrderRow } from "@/lib/supabase/types";
 import { fallbackRestaurants } from "@/lib/supabase/menu";
 import { getRestaurantDashboardMetrics } from "@/lib/restaurantDashboardData";
 
@@ -226,8 +230,11 @@ export default function MainDashboardView() {
   }
 
   const { activeOrder, selectedRestaurant, setSelectedRestaurant } = useActiveOrder();
+  const { notify } = useNotifications();
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot>(() => getStoredAnalyticsSnapshot());
   const [inventory, setInventory] = useState<InventoryIngredient[]>(() => getStoredInventoryState());
+  const [pendingOrders, setPendingOrders] = useState<OrderRow[]>([]);
+  const [pendingOrdersLoading, setPendingOrdersLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -243,6 +250,78 @@ export default function MainDashboardView() {
     syncData();
     return () => { isMounted = false; };
   }, [activeOrder]);
+
+  async function loadPendingOrders() {
+    setPendingOrdersLoading(true);
+    const { data } = await getOrders({
+      restaurantId: selectedRestaurant.id,
+      status: "pending",
+    });
+    setPendingOrders(data ?? []);
+    setPendingOrdersLoading(false);
+  }
+
+  useEffect(() => {
+    loadPendingOrders();
+  }, [selectedRestaurant.id, activeOrder]);
+
+  async function handleAcceptOrder(orderId: string) {
+    const { data: orderWithItems } = await getOrderWithItems(orderId);
+    if (!orderWithItems) return;
+
+    const context: OrderAnalysisContext = {
+      orderId: orderWithItems.id,
+      selectedRestaurantId: selectedRestaurant.id,
+      selectedRestaurantName: selectedRestaurant.name,
+      restaurantCuisine: selectedRestaurant.cuisine,
+      deliveryTime: selectedRestaurant.deliveryTime,
+      items: (orderWithItems.order_items ?? []).map((item) => ({
+        id: item.menu_item_id || item.id,
+        name: item.item_name,
+        price: Number(item.unit_price) || 0,
+        calories: item.calories || 0,
+        protein: item.protein || 0,
+        carbohydrates: item.carbohydrates || 0,
+        fat: item.fat || 0,
+        sugar: item.sugar || 0,
+        sodium: item.sodium || 0,
+        allergens: Array.isArray(item.allergens) ? item.allergens : [],
+        quantity: item.quantity || 1,
+      })),
+      subtotal: Number(orderWithItems.subtotal) || 0,
+      totalCalories: orderWithItems.total_calories ?? 0,
+      averageMealScore: orderWithItems.average_meal_score ?? 80,
+    };
+
+    applyOrderToInventory(context);
+    await updateOrderStatus(orderId, "accepted");
+
+    notify({
+      icon: "✅",
+      title: "Order Accepted",
+      description: `Order ${orderWithItems.order_number} accepted. Inventory and analytics updated.`,
+      category: "Orders",
+      severity: "success",
+      dedupeKey: `accept-${orderId}`,
+    });
+
+    loadPendingOrders();
+  }
+
+  async function handleCompleteOrder(orderId: string) {
+    await updateOrderStatus(orderId, "completed");
+
+    notify({
+      icon: "✅",
+      title: "Order Completed",
+      description: `Order has been marked as completed.`,
+      category: "Orders",
+      severity: "success",
+      dedupeKey: `complete-${orderId}`,
+    });
+
+    loadPendingOrders();
+  }
 
   const metrics = useMemo(() => {
     return getRestaurantDashboardMetrics(
@@ -338,6 +417,73 @@ export default function MainDashboardView() {
         ))}
       </div>
 
+      {pendingOrdersLoading ? (
+        <Card className="flex items-center justify-center py-6 text-sm text-muted">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald border-t-transparent" />
+            Loading pending orders...
+          </div>
+        </Card>
+      ) : pendingOrders.length > 0 ? (
+        <section>
+          <div className="mb-4 flex items-center gap-3">
+            <span className="text-lg">🕐</span>
+            <div>
+              <h2 className="text-lg font-bold text-white">Pending Orders</h2>
+              <p className="text-xs text-muted">{pendingOrders.length} order{pendingOrders.length === 1 ? "" : "s"} waiting for action</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {pendingOrders.map((order) => (
+              <Card key={order.id} className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-white">{order.order_number}</p>
+                    <p className="text-xs text-muted">
+                      {new Date(order.created_at).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-amber/20 bg-amber/10 px-3 py-1 text-xs font-semibold text-amber">
+                    Pending
+                  </span>
+                </div>
+                <p className="text-sm text-muted">{order.notes || `₹${order.total_amount.toLocaleString("en-IN")} — ${order.total_calories ?? "—"} kcal`}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold text-white">
+                    ₹{order.total_amount.toLocaleString("en-IN")}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => handleAcceptOrder(order.id)}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => handleCompleteOrder(order.id)}
+                    >
+                      Complete
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid gap-6 xl:grid-cols-4">
         <Card className="xl:col-span-3 space-y-4">
           <div className="flex items-center justify-between">
@@ -368,8 +514,10 @@ export default function MainDashboardView() {
               <span className="text-lg">📋</span>
               <h3 className="text-sm font-bold text-white">Pending Orders</h3>
             </div>
-            <p className="text-2xl font-bold text-white">{Math.max(0, Math.round(metrics.ordersToday * 0.3))}</p>
-            <p className="text-xs text-muted">{metrics.ordersToday} total today</p>
+            <p className={`text-2xl font-bold ${pendingOrders.length > 0 ? "text-amber" : "text-white"}`}>
+              {pendingOrders.length}
+            </p>
+            <p className="text-xs text-muted">{pendingOrders.length === 1 ? "order" : "orders"} waiting</p>
           </Card>
 
           <Card className="space-y-2">

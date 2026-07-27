@@ -28,26 +28,14 @@ export async function saveOrderToSupabase(
     const shortId = orderId ? orderId.slice(0, 8).toUpperCase() : Date.now().toString().slice(-6);
     const orderNumber = `ORD-${shortId}`;
 
-    let restaurantId = isUUID(context.selectedRestaurantId)
-      ? context.selectedRestaurantId
-      : null;
-
-    if (!restaurantId) {
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData?.user) {
-        const { data: userRest } = await getOrCreateRestaurantForUser(authData.user);
-        if (userRest) {
-          restaurantId = userRest.id;
-        }
-      }
-    }
+    let restaurantId: string | null = context.selectedRestaurantId || null;
 
     const orderPayload: OrderInsert = {
       id: orderId,
       order_number: orderNumber,
       customer_id: null,
       restaurant_id: restaurantId,
-      status: "completed",
+      status: "pending",
       subtotal: context.subtotal,
       tax: 0,
       delivery_fee: 0,
