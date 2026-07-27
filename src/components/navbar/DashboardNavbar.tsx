@@ -5,6 +5,8 @@ import SearchBar from "@/components/navbar/SearchBar";
 import NotificationDrawer from "@/components/navbar/NotificationDrawer";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { getRoleIcon, getRoleLabel } from "@/lib/userRole";
+import Avatar from "@/components/ui/Avatar";
 
 type Props = {
   onMenuToggle: () => void;
@@ -15,10 +17,13 @@ export default function DashboardNavbar({ onMenuToggle }: Props) {
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { unreadCount } = useNotifications();
-  const { user, restaurant, signOut } = useAuth();
+  const { user, restaurant, role, signOut } = useAuth();
 
   const displayName =
-    restaurant?.name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Admin";
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "User";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-white/5 bg-background/80 px-4 backdrop-blur-xl sm:px-6">
@@ -59,19 +64,40 @@ export default function DashboardNavbar({ onMenuToggle }: Props) {
             aria-label="Profile menu"
             onClick={() => setProfileOpen(!profileOpen)}
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald/20 text-sm">
-              👤
-            </span>
-            <span className="hidden text-sm font-medium text-white sm:block truncate max-w-[140px]">
-              {displayName}
+            <Avatar
+              src={user?.user_metadata?.avatar_url}
+              name={displayName}
+              size="sm"
+              className="rounded-lg"
+            />
+            <span className="hidden sm:block">
+              <span className="block max-w-[140px] truncate text-sm font-medium text-white">
+                {displayName}
+              </span>
+              {role ? (
+                <span className="block text-[11px] text-emerald-light">
+                  {getRoleIcon(role)} {getRoleLabel(role)}
+                </span>
+              ) : null}
             </span>
           </button>
 
           {profileOpen ? (
-            <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-white/10 bg-surface/95 p-2 shadow-xl backdrop-blur-xl z-50">
+            <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-surface/95 p-2 shadow-xl backdrop-blur-xl z-50">
               <div className="px-3 py-2 text-xs border-b border-white/10">
-                <p className="font-semibold text-white truncate">{displayName}</p>
-                <p className="text-muted truncate">{user?.email}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Avatar src={user?.user_metadata?.avatar_url} name={displayName} size="sm" />
+                  <p className="font-semibold text-white truncate">{displayName}</p>
+                </div>
+                {role ? (
+                  <p className="mt-1 text-emerald-light">
+                    {getRoleIcon(role)} {getRoleLabel(role)}
+                  </p>
+                ) : null}
+                {role === "owner" && restaurant?.name ? (
+                  <p className="mt-1 text-muted truncate">{restaurant.name}</p>
+                ) : null}
+                <p className="mt-1 text-muted truncate">{user?.email}</p>
               </div>
               <button
                 type="button"

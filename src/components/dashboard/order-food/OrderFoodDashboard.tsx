@@ -219,7 +219,7 @@ export default function OrderFoodDashboard() {
       icon: "₹",
       title: "Analytics updated",
       description: `Revenue increased by ₹${subtotal.toLocaleString("en-IN")} from the latest order.`,
-      category: "Analytics",
+      category: "AI Insights",
       severity: "information",
       dedupeKey: `analytics-update-${context.orderId}`,
     });
@@ -246,7 +246,7 @@ export default function OrderFoodDashboard() {
         icon: "!",
         title: "High-calorie meal detected",
         description: `This order has a meal health score of ${averageMealScore}/100 and may need a healthier swap.`,
-        category: "Health",
+        category: "Customer Activity",
         severity: "warning",
         dedupeKey: `meal-score-${context.orderId}`,
       });
@@ -259,7 +259,7 @@ export default function OrderFoodDashboard() {
         icon: "!",
         title: "Dietary safety risk detected",
         description: `This order contains: ${detectedAllergens.join(", ")}. Review the dietary safety guidance before serving.`,
-        category: "Health",
+        category: "Customer Activity",
         severity: "warning",
         dedupeKey: `dietary-risk-${context.orderId}`,
       });

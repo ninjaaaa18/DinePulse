@@ -165,7 +165,7 @@ export default function AllergySafetyDashboard() {
         icon: "✦",
         title: "AI dietary review generated",
         description: analysis.safeAlternatives[0] ?? "Dietary safety recommendations are ready.",
-        category: "AI",
+        category: "AI Insights",
         severity: "ai-generated",
         dedupeKey: `dietary-ai-${orderContext?.orderId ?? "sample"}`,
       });
@@ -174,7 +174,7 @@ export default function AllergySafetyDashboard() {
           icon: "!",
           title: "Dietary safety risk detected",
           description: analysis.warnings[0] ?? `Risk level: ${analysis.riskLevel}.`,
-          category: "Health",
+          category: "Customer Activity",
           severity: "critical",
           dedupeKey: `dietary-risk-${orderContext?.orderId ?? "sample"}`,
         });

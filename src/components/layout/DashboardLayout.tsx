@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar/Sidebar";
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import { ActiveOrderProvider } from "@/components/dashboard/ActiveOrderProvider";
 import { NotificationProvider } from "@/components/dashboard/NotificationProvider";
 import AICopilotWidget from "@/components/dashboard/AICopilotWidget";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { getRedirectForUnauthorizedPath } from "@/lib/roleRoutes";
 
 type Props = {
   children: ReactNode;
@@ -15,7 +16,8 @@ type Props = {
 
 export default function DashboardLayout({ children }: Props) {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const pathname = usePathname();
+  const { user, role, loading, roleLoading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,21 @@ export default function DashboardLayout({ children }: Props) {
     }
   }, [loading, user, router]);
 
-  if (loading) {
+  useEffect(() => {
+    if (loading || roleLoading || !user) return;
+
+    if (!role) {
+      router.replace("/onboarding/choose-experience");
+      return;
+    }
+
+    const redirectTo = getRedirectForUnauthorizedPath(pathname, role);
+    if (redirectTo) {
+      router.replace(redirectTo);
+    }
+  }, [loading, roleLoading, user, role, pathname, router]);
+
+  if (loading || roleLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -35,7 +51,12 @@ export default function DashboardLayout({ children }: Props) {
     );
   }
 
-  if (!user) {
+  if (!user || !role) {
+    return null;
+  }
+
+  const unauthorizedRedirect = getRedirectForUnauthorizedPath(pathname, role);
+  if (unauthorizedRedirect) {
     return null;
   }
 
@@ -49,9 +70,9 @@ export default function DashboardLayout({ children }: Props) {
           />
           <div className="flex min-w-0 flex-1 flex-col">
             <DashboardNavbar onMenuToggle={() => setMobileOpen(true)} />
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 animate-fade-in-up">{children}</main>
           </div>
-          <AICopilotWidget />
+          {role === "owner" ? <AICopilotWidget /> : null}
         </div>
       </ActiveOrderProvider>
     </NotificationProvider>

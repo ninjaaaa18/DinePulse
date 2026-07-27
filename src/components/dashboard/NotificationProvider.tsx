@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type NotificationCategory = "Inventory" | "Health" | "Analytics" | "Restaurant" | "AI" | "Orders";
+export type NotificationCategory = "Orders" | "Inventory" | "AI Insights" | "Customer Activity";
 export type NotificationSeverity = "success" | "warning" | "critical" | "information" | "ai-generated";
 
 export type DinePulseNotification = {
@@ -34,42 +34,42 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 const defaultInitialNotifications: DinePulseNotification[] = [
   {
     id: "notif-1",
-    icon: "📦",
-    title: "Inventory Restock Reminder",
-    description: "Chicken Patty stock is down to 20 servings. Restock suggested before peak dinner hours.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    category: "Inventory",
-    severity: "warning",
+    icon: "🛒",
+    title: "New Order Received",
+    description: "Order #1042 has been placed at Urban Burger. 3 items totaling ₹547.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
+    category: "Orders",
+    severity: "success",
     read: false,
   },
   {
     id: "notif-2",
-    icon: "🥗",
-    title: "Customer Meal Health High",
-    description: "Urban Burger achieved an average meal health score of 88/100 today.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    category: "Health",
+    icon: "⭐",
+    title: "Customer Rated Burger 5★",
+    description: "A customer rated the Classic Burger 5 stars with positive feedback.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    category: "Customer Activity",
     severity: "success",
     read: false,
   },
   {
     id: "notif-3",
-    icon: "↗",
-    title: "AI Predictions Updated",
-    description: "Gemini AI generated 6 smart operational predictions for inventory and staff scheduling.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    category: "AI",
-    severity: "ai-generated",
+    icon: "⚠",
+    title: "Cheese Stock Low",
+    description: "Cheese inventory is down to 15 servings. Reorder before tomorrow's peak.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    category: "Inventory",
+    severity: "warning",
     read: false,
   },
   {
     id: "notif-4",
-    icon: "📊",
-    title: "Daily Revenue Milestone",
-    description: "Daily revenue crossed ₹18,400 with 142 orders completed.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    category: "Analytics",
-    severity: "information",
+    icon: "📈",
+    title: "Revenue Increased by 14%",
+    description: "Today's revenue is up 14% compared to the same period last week.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    category: "AI Insights",
+    severity: "ai-generated",
     read: true,
   },
 ];

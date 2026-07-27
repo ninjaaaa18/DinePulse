@@ -17,6 +17,8 @@ export type MenuItem = {
   image: string;
   badge: string;
   badgeIcon: string;
+  description?: string;
+  wellnessScore?: number;
 };
 
 export type Restaurant = {
@@ -28,6 +30,7 @@ export type Restaurant = {
   deliveryTime: string;
   logo: string;
   items: MenuItem[];
+  healthScore?: number;
 };
 
 // Fallback Hardcoded Restaurant Data with Valid UUIDs

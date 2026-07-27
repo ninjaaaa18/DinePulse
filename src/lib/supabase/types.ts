@@ -63,6 +63,12 @@ export type Database = {
         Update: NotificationUpdate;
         Relationships: [];
       };
+      profiles: {
+        Row: ProfileRow;
+        Insert: ProfileInsert;
+        Update: ProfileUpdate;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -529,6 +535,27 @@ export type NotificationUpdate = {
   is_read?: boolean | null;
   dedupe_key?: string | null;
   metadata?: Json | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ProfileRow = {
+  id: string;
+  role: "owner" | "customer";
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProfileInsert = {
+  id: string;
+  role: "owner" | "customer";
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ProfileUpdate = {
+  id?: string;
+  role?: "owner" | "customer";
   created_at?: string;
   updated_at?: string;
 };

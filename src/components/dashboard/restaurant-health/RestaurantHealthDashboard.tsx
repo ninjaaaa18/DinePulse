@@ -100,7 +100,7 @@ export default function RestaurantHealthDashboard() {
         icon: "↗",
         title: "Restaurant health updated",
         description: insight.summary || "Restaurant health insights are ready to review.",
-        category: "Restaurant",
+        category: "Orders",
         severity: "information",
         dedupeKey: `restaurant-health-${orderContext?.orderId ?? "sample"}`,
       });
@@ -108,7 +108,7 @@ export default function RestaurantHealthDashboard() {
         icon: "✦",
         title: "AI recommendation generated",
         description: insight.recommendations[0] ?? "New operational guidance is available.",
-        category: "AI",
+        category: "AI Insights",
         severity: "ai-generated",
         dedupeKey: `restaurant-ai-${orderContext?.orderId ?? "sample"}`,
       });

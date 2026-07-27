@@ -127,7 +127,7 @@ export default function CustomerHealthDashboard() {
         icon: "✦",
         title: "AI meal analysis generated",
         description: analysis.recommendations[0] ?? "Your meal health insights are ready to review.",
-        category: "AI",
+        category: "AI Insights",
         severity: "ai-generated",
         dedupeKey: `meal-analysis-${orderContext?.orderId ?? "sample"}`,
       });

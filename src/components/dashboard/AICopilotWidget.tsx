@@ -224,7 +224,7 @@ export default function AICopilotWidget() {
         icon: "✦",
         title: "AI Copilot recommendation",
         description: aiReply.replace(/\*\*/g, "").slice(0, 110) + (aiReply.length > 110 ? "..." : ""),
-        category: "AI",
+        category: "AI Insights",
         severity: "ai-generated",
         dedupeKey: `copilot-rec-${Date.now()}`,
       });

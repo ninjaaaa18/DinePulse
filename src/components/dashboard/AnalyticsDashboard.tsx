@@ -32,7 +32,7 @@ export default function AnalyticsDashboard() {
           icon: "₹",
           title: "Analytics updated",
           description: `Revenue increased by ₹${activeOrder.subtotal.toLocaleString("en-IN")} from the latest order.`,
-          category: "Analytics",
+          category: "AI Insights",
           severity: "information",
           dedupeKey: `analytics-update-${activeOrder.orderId}`,
         });

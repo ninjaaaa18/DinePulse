@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import SidebarItem from "@/components/sidebar/SidebarItem";
-import { sidebarLinks } from "@/components/sidebar/sidebarLinks";
+import { getSidebarLinks } from "@/components/sidebar/sidebarLinks";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { getRoleIcon, getRoleLabel } from "@/lib/userRole";
+import Avatar from "@/components/ui/Avatar";
 
 type Props = {
   mobileOpen: boolean;
@@ -12,6 +15,21 @@ type Props = {
 
 export default function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { role, user, restaurant } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!role || !mounted) return null;
+
+  const links = getSidebarLinks(role);
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "User";
 
   return (
     <>
@@ -35,7 +53,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: Props) {
           }`}
         >
           <Link
-            href="/dashboard"
+            href={links[0]?.href ?? "/dashboard"}
             className="flex items-center gap-2 font-semibold text-white"
             onClick={onMobileClose}
           >
@@ -46,8 +64,25 @@ export default function Sidebar({ mobileOpen, onMobileClose }: Props) {
           </Link>
         </div>
 
+        {!collapsed ? (
+          <div className="border-b border-white/5 px-4 py-3">
+            <div className="flex items-center gap-3 mb-2">
+              <Avatar src={user?.user_metadata?.avatar_url} name={displayName} size="md" className="rounded-xl" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">{displayName}</p>
+                <p className="text-xs text-emerald-light">
+                  {getRoleIcon(role)} {getRoleLabel(role)}
+                </p>
+              </div>
+            </div>
+            {role === "owner" && restaurant?.name ? (
+              <p className="truncate text-xs text-muted border-t border-white/5 pt-2 mt-1">{restaurant.name}</p>
+            ) : null}
+          </div>
+        ) : null}
+
         <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Dashboard">
-          {sidebarLinks.map((link) => (
+          {links.map((link) => (
             <SidebarItem
               key={link.href}
               {...link}
