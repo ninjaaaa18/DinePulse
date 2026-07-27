@@ -1,13 +1,7 @@
-import SectionPlaceholder from "@/components/dashboard/SectionPlaceholder";
+import SettingsDashboard from "@/components/dashboard/settings/SettingsDashboard";
 
 export const metadata = { title: "Settings — DinePulse" };
 
 export default function SettingsPage() {
-  return (
-    <SectionPlaceholder
-      title="Settings"
-      description="Configure your restaurant profile, team, and preferences."
-      icon="⚙️"
-    />
-  );
+  return <SettingsDashboard />;
 }

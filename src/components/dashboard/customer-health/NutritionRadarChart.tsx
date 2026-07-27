@@ -1,7 +1,52 @@
+"use client";
+
 import Card from "@/components/cards/Card";
-import { radarChartData } from "@/components/dashboard/customer-health/customerHealthData";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 
 export default function NutritionRadarChart() {
+  const { activeOrder } = useActiveOrder();
+
+  const radarChartData = activeOrder
+    ? [
+        {
+          label: "Protein",
+          value: Math.min(100, Math.round((activeOrder.items.reduce((acc, i) => acc + i.protein * i.quantity, 0) / 45) * 100)),
+        },
+        {
+          label: "Fiber",
+          value: Math.min(100, Math.round((activeOrder.items.reduce((acc, i) => acc + (i.carbohydrates > 30 ? 6 : 3) * i.quantity, 0) / 15) * 100)),
+        },
+        {
+          label: "Calories",
+          value: Math.min(100, Math.round((activeOrder.totalCalories / 950) * 100)),
+        },
+        {
+          label: "Sugar",
+          value: Math.min(100, Math.round((activeOrder.items.reduce((acc, i) => acc + i.sugar * i.quantity, 0) / 50) * 100)),
+        },
+        {
+          label: "Sodium",
+          value: Math.min(100, Math.round((activeOrder.items.reduce((acc, i) => acc + i.sodium * i.quantity, 0) / 1500) * 100)),
+        },
+        {
+          label: "Fat",
+          value: Math.min(100, Math.round((activeOrder.items.reduce((acc, i) => acc + i.fat * i.quantity, 0) / 40) * 100)),
+        },
+        {
+          label: "Carbs",
+          value: Math.min(100, Math.round((activeOrder.items.reduce((acc, i) => acc + i.carbohydrates * i.quantity, 0) / 110) * 100)),
+        },
+      ]
+    : [
+        { label: "Protein", value: 0 },
+        { label: "Fiber", value: 0 },
+        { label: "Calories", value: 0 },
+        { label: "Sugar", value: 0 },
+        { label: "Sodium", value: 0 },
+        { label: "Fat", value: 0 },
+        { label: "Carbs", value: 0 },
+      ];
+
   const cx = 160;
   const cy = 160;
   const maxRadius = 100;
@@ -33,7 +78,7 @@ export default function NutritionRadarChart() {
       <div className="relative mb-4">
         <h2 className="text-lg font-semibold text-white">Nutrition Chart</h2>
         <p className="mt-1 text-sm text-muted">
-          Visual comparison of nutrient levels vs. optimal range
+          {activeOrder ? `Visual comparison for your ${activeOrder.items.map((i) => i.name).slice(0, 2).join(" & ")} selection` : "Visual comparison of nutrient levels vs. optimal range"}
         </p>
       </div>
 

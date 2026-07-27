@@ -1,14 +1,75 @@
+"use client";
+
 import Card from "@/components/cards/Card";
-import {
-  mealHealthScore,
-  macroSummary,
-} from "@/components/dashboard/customer-health/customerHealthData";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 
 export default function MealHealthScoreOverview() {
-  const { score, maxScore, status, statusEmoji } = mealHealthScore;
+  const { activeOrder } = useActiveOrder();
+
+  const score = activeOrder ? activeOrder.averageMealScore : 0;
+  const maxScore = 100;
+  const status = !activeOrder
+    ? "No Active Order"
+    : score >= 85
+    ? "Optimal Choice"
+    : score >= 75
+    ? "Healthy Choice"
+    : "Moderate Choice";
+  const statusEmoji = !activeOrder ? "⚪" : score >= 85 ? "🟢" : score >= 75 ? "🟡" : "🟠";
+
   const percentage = (score / maxScore) * 100;
   const circumference = 2 * Math.PI * 88;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  const macroSummary = activeOrder
+    ? [
+        { label: "Calories", value: `${activeOrder.totalCalories}`, unit: "kcal", icon: "🔥" },
+        {
+          label: "Protein",
+          value: `${activeOrder.items.reduce((acc, i) => acc + i.protein * i.quantity, 0)}g`,
+          unit: "",
+          icon: "💪",
+        },
+        {
+          label: "Carbohydrates",
+          value: `${activeOrder.items.reduce((acc, i) => acc + i.carbohydrates * i.quantity, 0)}g`,
+          unit: "",
+          icon: "🌾",
+        },
+        {
+          label: "Fat",
+          value: `${activeOrder.items.reduce((acc, i) => acc + i.fat * i.quantity, 0)}g`,
+          unit: "",
+          icon: "🥑",
+        },
+        {
+          label: "Sugar",
+          value: `${activeOrder.items.reduce((acc, i) => acc + i.sugar * i.quantity, 0)}g`,
+          unit: "",
+          icon: "🍬",
+        },
+        {
+          label: "Sodium",
+          value: `${activeOrder.items.reduce((acc, i) => acc + i.sodium * i.quantity, 0)}mg`,
+          unit: "",
+          icon: "🧂",
+        },
+        {
+          label: "Fiber",
+          value: `${activeOrder.items.reduce((acc, i) => acc + (i.carbohydrates > 30 ? 6 : 3) * i.quantity, 0)}g`,
+          unit: "",
+          icon: "🥬",
+        },
+      ]
+    : [
+        { label: "Calories", value: "0", unit: "kcal", icon: "🔥" },
+        { label: "Protein", value: "0g", unit: "", icon: "💪" },
+        { label: "Carbohydrates", value: "0g", unit: "", icon: "🌾" },
+        { label: "Fat", value: "0g", unit: "", icon: "🥑" },
+        { label: "Sugar", value: "0g", unit: "", icon: "🍬" },
+        { label: "Sodium", value: "0mg", unit: "", icon: "🧂" },
+        { label: "Fiber", value: "0g", unit: "", icon: "🥬" },
+      ];
 
   return (
     <Card className="relative overflow-hidden">

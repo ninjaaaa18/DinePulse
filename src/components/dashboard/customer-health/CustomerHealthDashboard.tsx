@@ -11,10 +11,10 @@ import NutritionRadarChart from "@/components/dashboard/customer-health/Nutritio
 import DailyNutritionSummary from "@/components/dashboard/customer-health/DailyNutritionSummary";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
-import { nutritionBreakdown } from "@/components/dashboard/customer-health/customerHealthData";
 import { buildCustomerHealthAnalysisPayload } from "@/lib/orderAnalysis";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
+import { callAIAPI } from "@/lib/aiClient";
 
 type AnalysisPayload = {
   summary: string;
@@ -114,26 +114,14 @@ export default function CustomerHealthDashboard() {
             },
           };
 
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "meal-analysis",
-          prompt:
-            "Analyze this meal using the provided nutrition values. Keep the response concise and actionable.",
-          data: requestPayload,
-        }),
+      const rawAnalysis = await callAIAPI<Record<string, unknown>>({
+        type: "meal-analysis",
+        prompt:
+          "Analyze this meal using the provided nutrition values. Keep the response concise and actionable.",
+        data: requestPayload,
       });
 
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "Unable to analyze the meal right now.");
-      }
-
-      const analysis = normalizeAnalysisPayload(payload);
+      const analysis = normalizeAnalysisPayload({ success: true, analysis: rawAnalysis });
       setAnalysisResult(analysis);
       notify({
         icon: "✦",
@@ -180,9 +168,102 @@ export default function CustomerHealthDashboard() {
           Nutrition Breakdown
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {nutritionBreakdown.map((nutrient) => (
+          {(orderContext
+            ? [
+                {
+                  id: "calories",
+                  label: "Calories",
+                  icon: "🔥",
+                  current: orderContext.totalCalories,
+                  recommended: 650,
+                  unit: "kcal",
+                  status: orderContext.totalCalories > 800 ? ("warning" as const) : ("good" as const),
+                  gradient: "from-orange-500/20 to-amber-500/10",
+                  accent: "text-orange-400",
+                  bar: "bg-gradient-to-r from-orange-500 to-amber-400",
+                },
+                {
+                  id: "protein",
+                  label: "Protein",
+                  icon: "💪",
+                  current: orderContext.items.reduce((acc, i) => acc + i.protein * i.quantity, 0),
+                  recommended: 35,
+                  unit: "g",
+                  status: "good" as const,
+                  gradient: "from-emerald/20 to-green-500/10",
+                  accent: "text-emerald-light",
+                  bar: "bg-gradient-to-r from-emerald to-emerald-light",
+                },
+                {
+                  id: "carbs",
+                  label: "Carbs",
+                  icon: "🌾",
+                  current: orderContext.items.reduce((acc, i) => acc + i.carbohydrates * i.quantity, 0),
+                  recommended: 80,
+                  unit: "g",
+                  status: "moderate" as const,
+                  gradient: "from-blue-500/20 to-cyan-500/10",
+                  accent: "text-blue-400",
+                  bar: "bg-gradient-to-r from-blue-500 to-cyan-400",
+                },
+                {
+                  id: "fat",
+                  label: "Fat",
+                  icon: "🥑",
+                  current: orderContext.items.reduce((acc, i) => acc + i.fat * i.quantity, 0),
+                  recommended: 30,
+                  unit: "g",
+                  status: "moderate" as const,
+                  gradient: "from-yellow-500/20 to-lime-500/10",
+                  accent: "text-yellow-400",
+                  bar: "bg-gradient-to-r from-yellow-500 to-lime-400",
+                },
+                {
+                  id: "sugar",
+                  label: "Sugar",
+                  icon: "🍬",
+                  current: orderContext.items.reduce((acc, i) => acc + i.sugar * i.quantity, 0),
+                  recommended: 25,
+                  unit: "g",
+                  status: orderContext.items.reduce((acc, i) => acc + i.sugar * i.quantity, 0) > 25 ? ("warning" as const) : ("good" as const),
+                  gradient: "from-pink-500/20 to-rose-500/10",
+                  accent: "text-pink-400",
+                  bar: "bg-gradient-to-r from-pink-500 to-rose-400",
+                },
+                {
+                  id: "sodium",
+                  label: "Sodium",
+                  icon: "🧂",
+                  current: orderContext.items.reduce((acc, i) => acc + i.sodium * i.quantity, 0),
+                  recommended: 800,
+                  unit: "mg",
+                  status: orderContext.items.reduce((acc, i) => acc + i.sodium * i.quantity, 0) > 1000 ? ("warning" as const) : ("good" as const),
+                  gradient: "from-red-500/20 to-orange-500/10",
+                  accent: "text-red-400",
+                  bar: "bg-gradient-to-r from-red-500 to-orange-400",
+                },
+                {
+                  id: "fiber",
+                  label: "Fiber",
+                  icon: "🥬",
+                  current: orderContext.items.reduce((acc, i) => acc + (i.carbohydrates > 30 ? 6 : 3) * i.quantity, 0),
+                  recommended: 15,
+                  unit: "g",
+                  status: "critical" as const,
+                  gradient: "from-emerald-dark/20 to-emerald/10",
+                  accent: "text-emerald-light",
+                  bar: "bg-gradient-to-r from-emerald-dark to-emerald",
+                },
+              ]
+            : []
+          ).map((nutrient) => (
             <NutritionBreakdownCard key={nutrient.id} {...nutrient} />
           ))}
+          {!orderContext ? (
+            <div className="col-span-full rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center text-sm text-muted">
+              No active order selected. Place an order on the Order Food page to view your live nutrition breakdown.
+            </div>
+          ) : null}
         </div>
       </section>
 

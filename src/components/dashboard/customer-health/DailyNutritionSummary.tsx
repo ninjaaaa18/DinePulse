@@ -1,18 +1,25 @@
+"use client";
+
 import Card from "@/components/cards/Card";
-import { dailyNutritionSummary } from "@/components/dashboard/customer-health/customerHealthData";
+import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 
 export default function DailyNutritionSummary() {
-  const { caloriesConsumed, caloriesGoal, proteinGoal, waterGoal } =
-    dailyNutritionSummary;
+  const { activeOrder } = useActiveOrder();
 
-  const caloriesRemaining = caloriesGoal - caloriesConsumed;
-  const caloriesProgress = Math.round((caloriesConsumed / caloriesGoal) * 100);
-  const proteinProgress = Math.round(
-    (proteinGoal.current / proteinGoal.target) * 100,
-  );
-  const waterProgress = Math.round(
-    (waterGoal.current / waterGoal.target) * 100,
-  );
+  const caloriesConsumed = activeOrder ? activeOrder.totalCalories : 0;
+  const caloriesGoal = 2000;
+  const caloriesRemaining = Math.max(0, caloriesGoal - caloriesConsumed);
+  const caloriesProgress = Math.min(100, Math.round((caloriesConsumed / caloriesGoal) * 100));
+
+  const proteinConsumed = activeOrder
+    ? activeOrder.items.reduce((acc, i) => acc + i.protein * i.quantity, 0)
+    : 0;
+  const proteinTarget = 60;
+  const proteinProgress = Math.min(100, Math.round((proteinConsumed / proteinTarget) * 100));
+
+  const waterCurrent = 4;
+  const waterTarget = 8;
+  const waterProgress = Math.round((waterCurrent / waterTarget) * 100);
 
   return (
     <Card className="relative h-full overflow-hidden">
@@ -23,7 +30,9 @@ export default function DailyNutritionSummary() {
 
       <div className="relative">
         <h2 className="text-lg font-semibold text-white">Daily Nutrition Summary</h2>
-        <p className="mt-1 text-sm text-muted">Your progress toward daily goals</p>
+        <p className="mt-1 text-sm text-muted">
+          {activeOrder ? `Progress driven by order for ${activeOrder.selectedRestaurantName}` : "No active order loaded"}
+        </p>
 
         <div className="mt-6 space-y-5">
           <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
@@ -64,11 +73,10 @@ export default function DailyNutritionSummary() {
                 </p>
               </div>
               <p className="mt-2 text-xl font-bold text-white">
-                {proteinGoal.current}
+                {proteinConsumed}
                 <span className="text-sm font-normal text-muted">
                   {" "}
-                  / {proteinGoal.target}
-                  {proteinGoal.unit}
+                  / {proteinTarget}g
                 </span>
               </p>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -87,10 +95,10 @@ export default function DailyNutritionSummary() {
                 </p>
               </div>
               <p className="mt-2 text-xl font-bold text-white">
-                {waterGoal.current}
+                {waterCurrent}
                 <span className="text-sm font-normal text-muted">
                   {" "}
-                  / {waterGoal.target} {waterGoal.unit}
+                  / {waterTarget} glasses
                 </span>
               </p>
               <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">

@@ -13,6 +13,7 @@ import { healthParameters } from "@/components/dashboard/restaurant-health/resta
 import { buildRestaurantHealthAnalysisPayload } from "@/lib/orderAnalysis";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
+import { callAIAPI } from "@/lib/aiClient";
 
 type AIInsightPayload = {
   summary: string;
@@ -88,24 +89,12 @@ export default function RestaurantHealthDashboard() {
             },
           };
 
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "restaurant-health",
-          data: basePayload,
-        }),
+      const rawInsight = await callAIAPI<Record<string, unknown>>({
+        type: "restaurant-health",
+        data: basePayload,
       });
 
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "Unable to generate AI insights right now.");
-      }
-
-      const insight = normalizeInsightPayload(payload);
+      const insight = normalizeInsightPayload({ success: true, analysis: rawInsight });
       setInsightData(insight);
       notify({
         icon: "↗",

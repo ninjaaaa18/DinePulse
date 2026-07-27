@@ -42,9 +42,9 @@ export default function NotificationDrawer({ open, onClose }: Props) {
       {open ? <button type="button" aria-label="Close notifications" onClick={onClose} className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" /> : null}
       <aside
         aria-label="Notifications"
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-white/10 bg-surface shadow-2xl shadow-black/40 transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col overflow-hidden border-l border-white/10 bg-surface shadow-2xl shadow-black/40 transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}
       >
-        <div className="border-b border-white/10 p-5">
+        <div className="shrink-0 border-b border-white/10 p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-white">Notifications</h2>
@@ -65,7 +65,7 @@ export default function NotificationDrawer({ open, onClose }: Props) {
           </div>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
           {visibleNotifications.length ? visibleNotifications.map((notification) => (
             <button key={notification.id} type="button" onClick={() => markAsRead(notification.id)} className={`w-full rounded-2xl border p-4 text-left transition-colors hover:border-emerald/30 ${severityStyles[notification.severity]} ${notification.read ? "opacity-60" : ""}`}>
               <div className="flex items-start gap-3">

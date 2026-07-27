@@ -4,16 +4,15 @@ import { useEffect, useState } from "react";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import {
-  adviceCards,
-  alternativeCards,
-  ingredientCards,
-  mealItems,
+  defaultAdviceCards,
   profileOptions,
   safetyTimeline,
+  type IngredientStatus,
 } from "@/components/dashboard/allergy-safety/allergySafetyData";
 import { buildDietarySafetyAnalysisPayload } from "@/lib/orderAnalysis";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
+import { callAIAPI } from "@/lib/aiClient";
 
 const statusStyles = {
   Safe: "bg-emerald/15 text-emerald border-emerald/30",
@@ -121,56 +120,46 @@ export default function AllergySafetyDashboard() {
               ),
             },
             meal: {
-              name: "Veg Combo Meal",
-              items: ["Veg Burger", "French Fries", "Chocolate Milkshake"],
+              name: "Custom Order",
+              items: ["Veg Combo"],
             },
             nutrition: {
-              calories: 820,
-              sugar: 42,
-              sodium: 1240,
+              calories: 500,
+              sugar: 20,
+              sodium: 600,
             },
           };
 
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "dietary-safety",
-          data: {
-            ...basePayload,
-            customer: {
-              ...basePayload.customer,
-              diet: selectedDiets.join(", ") || basePayload.customer.diet,
-              medicalConditions: selectedConditions.length
-                ? selectedConditions
-                : basePayload.customer.medicalConditions,
-              allergies: Array.from(
-                new Set([
-                  ...basePayload.customer.allergies.filter((item) => item !== "None"),
-                  ...selectedAllergies.map((item) => (item === "Peanut" ? "Peanuts" : item)),
-                ]),
-              ),
-            },
-            meal: {
-              ...basePayload.meal,
-              name: orderContext?.selectedRestaurantName ?? basePayload.meal.name,
-              items: orderContext
-                ? orderContext.items.map((item) => item.name)
-                : basePayload.meal.items,
-            },
+      const rawAnalysis = await callAIAPI<Record<string, unknown>>({
+        type: "dietary-safety",
+        data: {
+          ...basePayload,
+          customer: {
+            ...basePayload.customer,
+            diet: selectedDiets.join(", ") || basePayload.customer.diet,
+            medicalConditions: selectedConditions.length
+              ? selectedConditions
+              : basePayload.customer.medicalConditions,
+            allergies: Array.from(
+              new Set([
+                ...basePayload.customer.allergies.filter((item) => item !== "None"),
+                ...selectedAllergies.map((item) => (item === "Peanut" ? "Peanuts" : item)),
+              ]),
+            ),
           },
-        }),
+          meal: {
+            ...basePayload.meal,
+            name: orderContext
+              ? orderContext.items.map((item) => item.name).join(" + ")
+              : basePayload.meal.name,
+            items: orderContext
+              ? orderContext.items.map((item) => item.name)
+              : basePayload.meal.items,
+          },
+        },
       });
 
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "Unable to analyze dietary safety.");
-      }
-
-      const analysis = normalizeAIAnalysisPayload(payload);
+      const analysis = normalizeAIAnalysisPayload({ success: true, analysis: rawAnalysis });
       setAnalysisData(analysis);
       notify({
         icon: "✦",
@@ -199,6 +188,52 @@ export default function AllergySafetyDashboard() {
     }
   }
 
+  // Derive ingredient screening cards strictly from orderContext items
+  const ingredientCards: Array<{
+    name: string;
+    note: string;
+    status: IngredientStatus;
+  }> = orderContext
+    ? orderContext.items.map((item) => {
+        const itemAllergens = item.allergens.filter((a) => a !== "None");
+        const matchesAllergy = itemAllergens.some((a) => selectedAllergies.includes(a));
+        const status: IngredientStatus = matchesAllergy
+          ? "Avoid"
+          : itemAllergens.length > 0 || item.sodium > 800
+          ? "Warning"
+          : "Safe";
+
+        const note = matchesAllergy
+          ? `Contains ${itemAllergens.join(", ")} matching your allergy profile.`
+          : itemAllergens.length > 0
+          ? `Contains allergens: ${itemAllergens.join(", ")}.`
+          : "No major allergen flags detected.";
+
+        return {
+          name: item.name,
+          note,
+          status,
+        };
+      })
+    : [];
+
+  const alternativeCards = orderContext
+    ? orderContext.items
+        .filter((item) => item.sugar > 20 || item.sodium > 600 || item.allergens.some((a) => a !== "None"))
+        .map((item) => ({
+          title: `Replace ${item.name}`,
+          from: item.name,
+          to: item.name.toLowerCase().includes("soda") || item.name.toLowerCase().includes("coke")
+            ? "Fresh Lime Soda"
+            : item.name.toLowerCase().includes("fries")
+            ? "Garden Salad"
+            : "Grilled Veg Bowl",
+          scoreBefore: orderContext.averageMealScore,
+          scoreAfter: Math.min(98, orderContext.averageMealScore + 10),
+          detail: `Swapping ${item.name} improves nutritional alignment and reduces health risk flags.`,
+        }))
+    : [];
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -223,7 +258,11 @@ export default function AllergySafetyDashboard() {
             <span>{orderContext.totalCalories} kcal • ₹{orderContext.subtotal.toLocaleString("en-IN")}</span>
           </div>
         </Card>
-      ) : null}
+      ) : (
+        <Card className="border border-white/10 bg-white/[0.02] p-4 text-sm text-muted">
+          No active order selected. Place an order on the Order Food page to screen live dishes.
+        </Card>
+      )}
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card hover className="space-y-8">
@@ -371,24 +410,30 @@ export default function AllergySafetyDashboard() {
           </div>
 
           <div className="space-y-3">
-            {ingredientCards.map((item) => (
-              <div
-                key={item.name}
-                className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:border-white/10"
-              >
-                <div>
-                  <p className="font-semibold text-white">{item.name}</p>
-                  <p className="mt-1 text-xs text-muted">{item.note}</p>
-                </div>
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    statusStyles[item.status]
-                  }`}
+            {ingredientCards.length > 0 ? (
+              ingredientCards.map((item) => (
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:border-white/10"
                 >
-                  {item.status}
-                </span>
+                  <div>
+                    <p className="font-semibold text-white">{item.name}</p>
+                    <p className="mt-1 text-xs text-muted">{item.note}</p>
+                  </div>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                      statusStyles[item.status]
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center text-sm text-muted">
+                No active order items to screen.
               </div>
-            ))}
+            )}
           </div>
         </Card>
       </section>
@@ -464,16 +509,26 @@ export default function AllergySafetyDashboard() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {mealItems.map((item) => (
-            <Card key={item} hover className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white">{item}</h3>
-                <span className="text-xs font-medium text-emerald-light">
-                  Active Dish
-                </span>
-              </div>
-            </Card>
-          ))}
+          {orderContext && orderContext.items.length > 0 ? (
+            orderContext.items.map((item) => (
+              <Card key={item.id} hover className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-white">{item.name}</h3>
+                  <span className="text-xs font-medium text-emerald-light">
+                    {item.calories} kcal
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted">
+                  <span>Quantity: {item.quantity}</span>
+                  <span>Price: ₹{item.price * item.quantity}</span>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center text-sm text-muted">
+              No active order to break down.
+            </div>
+          )}
         </div>
       </section>
 
@@ -489,26 +544,32 @@ export default function AllergySafetyDashboard() {
           </div>
 
           <div className="space-y-3">
-            {alternativeCards.map((item) => (
-              <div
-                key={item.title}
-                className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:border-white/10"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="line-through text-muted">{item.from}</span>
-                    <span className="text-xs text-muted">→</span>
-                    <span className="font-semibold text-emerald-light">
-                      {item.to}
-                    </span>
+            {alternativeCards.length > 0 ? (
+              alternativeCards.map((item) => (
+                <div
+                  key={item.title}
+                  className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:border-white/10"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="line-through text-muted">{item.from}</span>
+                      <span className="text-xs text-muted">→</span>
+                      <span className="font-semibold text-emerald-light">
+                        {item.to}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted">{item.detail}</p>
                   </div>
-                  <p className="mt-1 text-xs text-muted">{item.detail}</p>
+                  <span className="rounded-full bg-emerald/10 px-3 py-1 text-xs font-medium text-emerald-light">
+                    Score {item.scoreBefore} → {item.scoreAfter}
+                  </span>
                 </div>
-                <span className="rounded-full bg-emerald/10 px-3 py-1 text-xs font-medium text-emerald-light">
-                  Score {item.scoreBefore} → {item.scoreAfter}
-                </span>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-center text-sm text-muted">
+                No active order items requiring alternatives.
               </div>
-            ))}
+            )}
           </div>
         </Card>
 
@@ -523,7 +584,7 @@ export default function AllergySafetyDashboard() {
           </div>
 
           <div className="space-y-3">
-            {adviceCards.map((item) => (
+            {defaultAdviceCards.map((item) => (
               <div
                 key={item.title}
                 className={`rounded-2xl border p-4 transition-all ${

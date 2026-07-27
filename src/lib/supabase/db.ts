@@ -63,6 +63,19 @@ export async function upsertRestaurant(restaurant: RestaurantInsert): Promise<{ 
   return { data, error };
 }
 
+export async function updateRestaurant(
+  id: string,
+  updates: RestaurantUpdate,
+): Promise<{ data: RestaurantRow | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from("restaurants")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  return { data, error };
+}
+
 // ==================== MENU ITEMS ====================
 
 export async function getMenuItems(restaurantId?: string): Promise<{ data: MenuItemRow[] | null; error: Error | null }> {

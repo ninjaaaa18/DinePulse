@@ -1,5 +1,6 @@
 import { getMenuItems, getRestaurants, upsertMenuItem, upsertRestaurant } from "./db";
 import type { MenuItemRow, RestaurantRow } from "./types";
+import { seedDatabaseIfEmpty } from "./seed";
 
 export type MenuItem = {
   id: string;
@@ -453,53 +454,6 @@ function mapRowToRestaurant(row: RestaurantRow, items: MenuItem[] = []): Restaur
 }
 
 /**
- * Seeds restaurants and menu items tables if empty.
- */
-async function seedDatabaseIfEmpty(): Promise<boolean> {
-  try {
-    for (const rest of fallbackRestaurants) {
-      const { data: createdRest, error: restErr } = await upsertRestaurant({
-        slug: rest.slug || rest.id,
-        name: rest.name,
-        cuisine: rest.cuisine,
-        description: rest.description,
-        delivery_time: rest.deliveryTime,
-        logo: rest.logo,
-        health_score: 92,
-        is_active: true,
-      });
-
-      if (createdRest && !restErr) {
-        for (const item of rest.items) {
-          await upsertMenuItem({
-            restaurant_id: createdRest.id,
-            slug: item.id,
-            name: item.name,
-            price: item.price,
-            calories: item.calories,
-            protein: item.protein,
-            carbohydrates: item.carbohydrates,
-            fat: item.fat,
-            sugar: item.sugar,
-            sodium: item.sodium,
-            allergens: item.allergens,
-            image: item.image,
-            badge: item.badge,
-            badge_icon: item.badgeIcon,
-            wellness_score: 88,
-            is_available: true,
-          });
-        }
-      }
-    }
-    return true;
-  } catch (err) {
-    console.warn("[Menu Seed] Error seeding database:", err);
-    return false;
-  }
-}
-
-/**
  * Fetches all restaurants from Supabase. Seeds database if empty.
  */
 export async function fetchRestaurantsFromSupabase(): Promise<Restaurant[] | null> {
@@ -515,12 +469,10 @@ export async function fetchRestaurantsFromSupabase(): Promise<Restaurant[] | nul
     }
 
     // Seed database if empty
-    const seeded = await seedDatabaseIfEmpty();
-    if (seeded) {
-      const { data: fresh } = await getRestaurants();
-      if (fresh && fresh.length > 0) {
-        return fresh.map((r) => mapRowToRestaurant(r));
-      }
+    await seedDatabaseIfEmpty();
+    const { data: fresh } = await getRestaurants();
+    if (fresh && fresh.length > 0) {
+      return fresh.map((r) => mapRowToRestaurant(r));
     }
 
     return null;

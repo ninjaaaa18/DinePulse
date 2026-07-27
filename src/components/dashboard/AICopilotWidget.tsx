@@ -10,6 +10,7 @@ import {
   getStoredAnalyticsSnapshot,
   getStoredInventoryState,
 } from "@/lib/orderAnalysis";
+import { callAIAPI } from "@/lib/aiClient";
 
 type Message = {
   id: string;
@@ -197,23 +198,13 @@ export default function AICopilotWidget() {
     try {
       const context = compileLiveDashboardContext();
 
-      const response = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "chat",
-          prompt: userPrompt,
-          data: context,
-        }),
+      const analysis = await callAIAPI<{ reply?: string }>({
+        type: "chat",
+        prompt: userPrompt,
+        data: context,
       });
 
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || "Unable to retrieve copilot guidance right now.");
-      }
-
-      const aiReply = payload.analysis?.reply || "Here is your operational update based on your live restaurant context.";
+      const aiReply = analysis.reply || "Here is your operational update based on your live restaurant context.";
 
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,

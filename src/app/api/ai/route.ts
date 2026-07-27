@@ -229,8 +229,9 @@ export async function POST(request: Request) {
         {
           success: false,
           error: result.error,
+          details: result.rawError,
         },
-        { status: 500 },
+        { status: result.statusCode ?? 500 },
       );
     }
 
@@ -244,12 +245,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json(payload);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected server error";
+    const rawMessage = error instanceof Error ? error.message : "Unexpected server error";
+    console.error("[API /api/ai Server Route Error]:", rawMessage);
 
     return NextResponse.json(
       {
         success: false,
-        error: `Failed to process AI request: ${message}`,
+        error: "Failed to process AI request. Please try again shortly.",
+        details: rawMessage,
       },
       { status: 500 },
     );

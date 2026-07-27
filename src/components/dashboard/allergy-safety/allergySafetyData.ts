@@ -21,74 +21,32 @@ export const profileOptions = {
   ],
 };
 
-export const mealItems = [
-  "Chicken Burger",
-  "French Fries",
-  "Coke",
-];
-
-export const ingredientCards: Array<{
-  name: string;
-  note: string;
-  status: IngredientStatus;
-}> = [
-  { name: "Chicken Patty", note: "Lean protein with moderate sodium", status: "Safe" },
-  { name: "Bun", note: "Contains gluten; avoid for gluten-free profile", status: "Warning" },
-  { name: "Cheese Slice", note: "Dairy-based and may trigger milk allergy", status: "Avoid" },
-  { name: "French Fries", note: "High sodium and fried fat", status: "Warning" },
-  { name: "Coke", note: "High sugar and empty calories", status: "Avoid" },
-];
-
-export const alternativeCards = [
-  {
-    title: "Replace Coke",
-    from: "Coke",
-    to: "Fresh Lime Soda",
-    scoreBefore: 78,
-    scoreAfter: 90,
-    detail: "Lower sugar while keeping the meal refreshing",
-  },
-  {
-    title: "Replace Fries",
-    from: "French Fries",
-    to: "Garden Salad",
-    scoreBefore: 90,
-    scoreAfter: 96,
-    detail: "Adds fiber and reduces sodium load",
-  },
-];
-
-export const adviceCards: Array<{
+export const defaultAdviceCards: Array<{
   title: string;
   body: string;
   tone: "danger" | "info" | "success";
 }> = [
   {
     title: "Allergy caution",
-    body: "This meal is not suitable because of your peanut allergy.",
+    body: "Review meal allergens against customer health preferences before serving.",
     tone: "danger",
   },
   {
     title: "Cooking choice",
-    body: "Choose grilled food instead of fried food for a gentler option.",
+    body: "Opt for fresh grilled preparations when possible to minimize sodium.",
     tone: "info",
   },
   {
     title: "Sugar reduction",
-    body: "Replacing soft drinks reduces daily sugar intake significantly.",
-    tone: "success",
-  },
-  {
-    title: "Protein balance",
-    body: "Excellent protein intake from the grilled protein component.",
+    body: "Replacing sweetened beverages significantly reduces overall meal glycemic load.",
     tone: "success",
   },
 ];
 
 export const safetyTimeline = [
-  "Meal Selected",
-  "Profile Checked",
-  "Ingredients Analyzed",
-  "Nutrition Compared",
-  "Recommendation Generated",
+  "Order Received",
+  "Health Profile Matched",
+  "Ingredients Screened",
+  "Cross-Contact Analyzed",
+  "Safety Review Complete",
 ];

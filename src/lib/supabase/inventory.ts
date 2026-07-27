@@ -1,4 +1,5 @@
 import { getInventory, upsertInventoryItem } from "./db";
+import { seedDatabaseIfEmpty } from "./seed";
 import { supabase } from "./client";
 import { getOrCreateRestaurantForUser } from "./auth";
 import {
@@ -91,11 +92,13 @@ export async function fetchInventoryFromSupabase(): Promise<InventoryIngredient[
       return data.map(mapRowToIngredient);
     }
 
-    // If database table is empty, seed with initial base inventory
-    const seedPromises = baseInventoryState.map((item) =>
-      upsertInventoryItem(mapIngredientToInsert(item, restaurantId))
-    );
-    await Promise.all(seedPromises);
+    // If database table is empty, trigger seed and re-fetch
+    await seedDatabaseIfEmpty();
+    const { data: fresh } = await getInventory(restaurantId || undefined);
+    if (fresh && fresh.length > 0) {
+      return fresh.map(mapRowToIngredient);
+    }
+
     return baseInventoryState;
   } catch (err) {
     console.warn("[Supabase Inventory] Exception on fetch, fallback active:", err);
