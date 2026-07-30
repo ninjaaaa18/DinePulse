@@ -384,6 +384,7 @@ export default function OrderFoodDashboard() {
         <RestaurantHeroImage
           cuisine={restaurant.cuisine}
           name={restaurant.name}
+          slug={restaurant.slug}
           size="banner"
           className="h-full w-full"
         />

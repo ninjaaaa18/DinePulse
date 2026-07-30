@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Button from "@/components/ui/Button";
 
 export default function Hero() {
@@ -7,6 +8,15 @@ export default function Hero() {
       className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pt-24 pb-20"
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <Image
+          src="/images/restaurants/spice-route.jpeg"
+          alt=""
+          fill
+          className="object-cover opacity-15"
+          sizes="100vw"
+          priority
+        />
+        <div className="absolute inset-0 bg-background/60" />
         <div className="absolute inset-0 bg-grid opacity-70" />
         <div className="absolute top-1/4 left-1/2 h-[700px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald/[0.15] blur-[180px] animate-glow-pulse" />
         <div className="absolute top-1/3 right-0 h-[500px] w-[500px] rounded-full bg-emerald/10 blur-[140px] animate-glow-drift" />

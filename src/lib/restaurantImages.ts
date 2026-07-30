@@ -1,7 +1,10 @@
-export type RestaurantWithImage = {
-  restaurantId: string;
-  image: string;
-  cuisine: string;
+const slugImageMap: Record<string, string> = {
+  "urban-burger": "/images/restaurants/urban-burger.jpeg",
+  "firegrill-kitchen": "/images/restaurants/firegrill.jpeg",
+  "green-garden-cafe": "/images/restaurants/green-garden.jpeg",
+  "pizza-forge": "/images/restaurants/pizza-forge.jpeg",
+  "spice-route": "/images/restaurants/spice-route.jpeg",
+  "fresh-bowl": "/images/restaurants/fresh-bowl.jpeg",
 };
 
 const cuisineImageMap: Record<string, string> = {
@@ -29,12 +32,14 @@ function normalizeCuisine(cuisine: string): string {
   return "";
 }
 
-export function getRestaurantImage(cuisine: string): string {
+export function getRestaurantImage(cuisine: string, slug?: string): string {
+  if (slug && slugImageMap[slug]) return slugImageMap[slug];
   const key = normalizeCuisine(cuisine);
   return cuisineImageMap[key] || fallbackImage;
 }
 
-export function getRestaurantHeroImage(cuisine: string): string {
+export function getRestaurantHeroImage(cuisine: string, slug?: string): string {
+  if (slug && slugImageMap[slug]) return slugImageMap[slug];
   const key = normalizeCuisine(cuisine);
   const heroMap: Record<string, string> = {
     "burger": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1600&q=85",

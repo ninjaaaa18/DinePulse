@@ -70,6 +70,7 @@ export default function BrowseRestaurantsDashboard() {
                 <RestaurantHeroImage
                   cuisine={restaurant.cuisine}
                   name={restaurant.name}
+                  slug={restaurant.slug}
                   className="h-full w-full"
                 />
                 <div className="absolute top-3 right-3 z-10 rounded-full border border-emerald/20 bg-emerald/10 px-2.5 py-1 text-xs font-semibold text-emerald-light backdrop-blur-sm">

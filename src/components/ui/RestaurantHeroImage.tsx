@@ -5,12 +5,13 @@ import { getRestaurantImage } from "@/lib/restaurantImages";
 type Props = {
   cuisine: string;
   name: string;
+  slug?: string;
   className?: string;
   size?: "card" | "banner";
 };
 
-const RestaurantHeroImage = memo(function RestaurantHeroImage({ cuisine, name, className = "", size = "card" }: Props) {
-  const src = getRestaurantImage(cuisine);
+const RestaurantHeroImage = memo(function RestaurantHeroImage({ cuisine, name, slug, className = "", size = "card" }: Props) {
+  const src = getRestaurantImage(cuisine, slug);
 
   if (size === "banner") {
     return (
