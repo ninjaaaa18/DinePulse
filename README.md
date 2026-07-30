@@ -139,14 +139,14 @@ Powered by **Google Gemini 2.5 Flash** across **5 analysis types**:
 | Lucide React | — | Icon library |
 | Radix UI | — | Accessible UI primitives |
 
-### Backend & Database
+## Backend & Database
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Supabase SSR | 0.12.3 | Server-side auth helpers |
-| Supabase JS | 2.110.8 | Database client |
-| PostgreSQL | — | Relational database (11 tables) |
-
+| **Next.js API Routes** | 16.x | Backend APIs, business logic, AI endpoints, and server-side processing |
+| **Supabase SSR** | 0.12.3 | Server-side authentication helpers |
+| **Supabase JS** | 2.110.8 | Database client and authentication |
+| **PostgreSQL (Supabase)** | — | Relational database (11 tables) |
 ### AI & Machine Learning
 
 | Technology | Version | Purpose |
