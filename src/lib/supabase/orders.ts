@@ -65,10 +65,6 @@ export async function saveOrderToSupabase(
     const { data, error } = await createOrder(orderPayload, itemsPayload);
 
     if (error) {
-      console.warn(
-        "[Supabase Order Sync] DB operation failed, falling back to sessionStorage:",
-        error.message
-      );
       return { success: false, error: new Error(error.message) };
     }
 

@@ -17,7 +17,7 @@ export default function SearchBar({ value, onChange, className = "" }: Props) {
       </span>
       <input
         type="search"
-        placeholder="Search orders, customers, menu..."
+        placeholder="Search restaurants, menu items..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-xl border border-white/10 bg-white/5 py-2 pr-4 pl-10 text-sm text-white placeholder:text-muted outline-none transition-all duration-200 focus:border-emerald/50 focus:ring-2 focus:ring-emerald/20"

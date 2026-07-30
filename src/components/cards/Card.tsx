@@ -11,7 +11,7 @@ export default function Card({ children, className = "", hover = false }: Props)
     <div
       className={`rounded-2xl border border-white/5 bg-surface p-6 ${
         hover
-          ? "transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald/20 hover:shadow-lg hover:shadow-emerald/5"
+          ? "transition-all duration-300 hover:-translate-y-1 hover:border-emerald/20 hover:shadow-lg hover:shadow-emerald/5"
           : ""
       } ${className}`}
     >

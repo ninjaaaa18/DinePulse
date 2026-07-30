@@ -29,6 +29,8 @@ const suggestedPrompts = [
   "Give today's summary.",
 ];
 
+let msgCounter = 0;
+
 function formatTime(date: Date = new Date()) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -189,7 +191,7 @@ export default function AICopilotWidget() {
     if (!userPrompt || isThinking) return;
 
     const userMessage: Message = {
-      id: `user-${Date.now()}`,
+      id: `user-${++msgCounter}`,
       sender: "user",
       text: userPrompt,
       timestamp: formatTime(),
@@ -211,7 +213,7 @@ export default function AICopilotWidget() {
       const aiReply = analysis.reply || "Here is your operational update based on your live restaurant context.";
 
       const aiMessage: Message = {
-        id: `ai-${Date.now()}`,
+        id: `ai-${++msgCounter}`,
         sender: "ai",
         text: aiReply,
         timestamp: formatTime(),
@@ -226,14 +228,14 @@ export default function AICopilotWidget() {
         description: aiReply.replace(/\*\*/g, "").slice(0, 110) + (aiReply.length > 110 ? "..." : ""),
         category: "AI Insights",
         severity: "ai-generated",
-        dedupeKey: `copilot-rec-${Date.now()}`,
+        dedupeKey: `copilot-rec-${++msgCounter}`,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unable to process request.";
       setMessages((prev) => [
         ...prev,
         {
-          id: `ai-err-${Date.now()}`,
+          id: `ai-err-${++msgCounter}`,
           sender: "ai",
           text: `⚠️ **Notice**: ${errorMessage}`,
           timestamp: formatTime(),

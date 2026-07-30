@@ -12,15 +12,11 @@ export async function getOrCreateRestaurantForUser(
 ): Promise<{ data: RestaurantRow | null; error: Error | null }> {
   try {
     // 1. Try finding existing restaurant by user_id
-    const { data: existingByUser, error: fetchErr } = await supabase
+    const { data: existingByUser } = await supabase
       .from("restaurants")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
-
-    if (fetchErr) {
-      console.warn("[Auth Sync] Failed to query restaurant by user_id:", fetchErr.message);
-    }
 
     if (existingByUser) {
       return { data: existingByUser, error: null };

@@ -265,11 +265,11 @@ function PartnerApplicationSection({ user, onRefresh }: { user: NonNullable<Retu
       </Card>
 
       {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-surface p-6 shadow-2xl animate-fade-in-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Start your restaurant">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-surface p-6 shadow-2xl animate-fade-in-up">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">🚀 Start Your Restaurant</h3>
-              <button type="button" onClick={() => setShowModal(false)} className="text-muted hover:text-white transition-colors">
+              <button type="button" onClick={() => setShowModal(false)} className="flex h-8 w-8 items-center justify-center rounded-xl text-muted hover:text-white transition-colors hover:bg-white/10" aria-label="Close dialog">
                 ✕
               </button>
             </div>
@@ -788,7 +788,7 @@ function OwnerSettings() {
           <div className="flex flex-col items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-8 text-center">
             <span className="text-3xl">👥</span>
             <p className="text-sm text-muted">Staff management is not yet available.</p>
-            <p className="text-xs text-muted">You'll be able to add, remove, and manage staff here.</p>
+            <p className="text-xs text-muted">You&apos;ll be able to add, remove, and manage staff here.</p>
           </div>
         </Card>
 

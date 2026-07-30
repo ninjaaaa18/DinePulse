@@ -7,13 +7,10 @@ import type {
   PartnerApplicationInsert,
   MenuItemRow,
   MenuItemInsert,
-  MenuItemUpdate,
   CustomerRow,
   CustomerInsert,
-  CustomerUpdate,
   OrderRow,
   OrderInsert,
-  OrderUpdate,
   OrderItemRow,
   OrderItemInsert,
   InventoryRow,
@@ -25,7 +22,6 @@ import type {
   AnalyticsInsert,
   NotificationRow,
   NotificationInsert,
-  NotificationUpdate,
 } from "./types";
 
 // ==================== RESTAURANTS ====================
