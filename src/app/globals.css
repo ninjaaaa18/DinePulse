@@ -142,8 +142,8 @@ html.light .bg-grid-lg {
 
 .bg-glass {
   background: rgba(24, 24, 27, 0.5);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -154,8 +154,8 @@ html.light .bg-glass {
 
 .bg-glass-strong {
   background: rgba(24, 24, 27, 0.75);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -203,15 +203,15 @@ html.light .card-premium {
 /* ==================== ENHANCED GLOW KEYFRAMES ==================== */
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.08); }
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
 @keyframes glow-drift {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(40px, -30px) scale(1.15); }
-  66% { transform: translate(-30px, 15px) scale(0.9); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(20px, -15px); }
+  66% { transform: translate(-15px, 8px); }
+  100% { transform: translate(0, 0); }
 }
 
 @keyframes float {
@@ -375,7 +375,8 @@ html.light ::placeholder {
     rgba(255, 255, 255, 0.04) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 2.5s ease-in-out infinite;
+  will-change: background-position;
 }
 
 @keyframes count-up {
@@ -394,12 +395,12 @@ html.light ::placeholder {
 }
 
 /* Staggered card entrance delays */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
+.stagger-1 { animation-delay: 0.03s; }
+.stagger-2 { animation-delay: 0.06s; }
+.stagger-3 { animation-delay: 0.09s; }
+.stagger-4 { animation-delay: 0.12s; }
+.stagger-5 { animation-delay: 0.15s; }
+.stagger-6 { animation-delay: 0.18s; }
 
 /* Hide scrollbar but keep functionality */
 .no-scrollbar::-webkit-scrollbar {

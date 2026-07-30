@@ -64,7 +64,7 @@ export default function BrowseRestaurantsDashboard() {
           {restaurants.map((restaurant) => (
             <div
               key={restaurant.id}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-surface shadow-lg shadow-black/15 transition-all duration-500 hover:-translate-y-2 hover:border-emerald/30 hover:shadow-2xl hover:shadow-emerald/20"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-surface shadow-lg transition-transform duration-500 hover:-translate-y-2 hover:border-emerald/30 hover:shadow-2xl"
             >
               <div className="relative h-40 overflow-hidden sm:h-44">
                 <RestaurantHeroImage
@@ -100,7 +100,7 @@ export default function BrowseRestaurantsDashboard() {
                 <Button
                   type="button"
                   variant="primary"
-                  className="mt-auto w-full rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                  className="mt-auto w-full rounded-xl transition-transform duration-300 hover:scale-[1.02]"
                   onClick={() => handleBrowse(restaurant)}
                 >
                   View Menu & Order

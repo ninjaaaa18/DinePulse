@@ -270,9 +270,9 @@ export default function AICopilotWidget() {
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label="Toggle AI Restaurant Manager Copilot"
-        className="group fixed bottom-6 right-6 z-40 flex h-15 w-15 items-center justify-center rounded-2xl border border-emerald/40 bg-gradient-to-br from-emerald via-emerald-dark to-emerald p-0.5 text-white shadow-2xl shadow-emerald/40 transition-all duration-500 hover:scale-110 hover:shadow-3xl hover:shadow-emerald/50 active:scale-95 sm:h-16 sm:w-16"
+        className="group fixed bottom-6 right-6 z-40 flex h-15 w-15 items-center justify-center rounded-2xl border border-emerald/40 bg-gradient-to-br from-emerald via-emerald-dark to-emerald p-0.5 text-white shadow-2xl shadow-emerald/40 transition-transform duration-500 hover:scale-110 active:scale-95 sm:h-16 sm:w-16"
       >
-        <div className="absolute inset-0 rounded-2xl bg-emerald/30 blur-2xl transition-all duration-500 opacity-0 group-hover:opacity-100 group-hover:scale-150" aria-hidden="true" />
+        <div className="absolute inset-0 rounded-2xl bg-emerald/30 blur-lg transition-opacity duration-500 opacity-0 group-hover:opacity-100" aria-hidden="true" />
         <div className="relative flex h-full w-full items-center justify-center rounded-[14px] bg-surface/20 backdrop-blur-lg">
           <span className="text-2xl animate-pulse">✦</span>
         </div>
@@ -284,10 +284,10 @@ export default function AICopilotWidget() {
 
       {/* Floating AI Chat Drawer Modal */}
       {isOpen ? (
-        <div className="fixed bottom-24 right-4 z-50 flex h-[620px] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border border-emerald/25 bg-surface/95 shadow-3xl shadow-emerald/25 backdrop-blur-2xl transition-all duration-300 sm:right-6 sm:w-[440px]">
+        <div className="fixed bottom-24 right-4 z-50 flex h-[620px] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border border-emerald/25 bg-surface/95 shadow-3xl shadow-emerald/25 backdrop-blur-md transition-opacity duration-300 sm:right-6 sm:w-[440px]">
           <div className="pointer-events-none absolute inset-0 bg-grid-sm opacity-30" aria-hidden="true" />
-          <div className="pointer-events-none absolute -top-40 -right-40 h-80 w-80 rounded-full bg-emerald/15 blur-[120px] animate-glow-pulse" aria-hidden="true" />
-          <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px] animate-float" aria-hidden="true" />
+          <div className="pointer-events-none absolute -top-40 -right-40 h-64 w-64 rounded-full bg-emerald/15 blur-[50px]" aria-hidden="true" />
+          <div className="pointer-events-none absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-cyan-500/10 blur-[40px]" aria-hidden="true" />
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 bg-background/50 px-5 py-4">
             <div className="flex items-center gap-3">
@@ -309,7 +309,7 @@ export default function AICopilotWidget() {
               <button
                 type="button"
                 onClick={handleClearChat}
-                className="rounded-lg px-2.5 py-1 text-xs text-muted transition-colors hover:bg-white/10 hover:text-white"
+                className="rounded-lg px-2.5 py-1 text-xs text-muted hover:bg-white/10 hover:text-white"
                 title="Clear conversation"
               >
                 Clear
@@ -317,7 +317,7 @@ export default function AICopilotWidget() {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="rounded-lg p-1.5 text-muted transition-colors hover:bg-white/10 hover:text-white"
+                className="rounded-lg p-1.5 text-muted hover:bg-white/10 hover:text-white"
                 aria-label="Close AI Copilot chat"
               >
                 ✕
@@ -341,7 +341,7 @@ export default function AICopilotWidget() {
                   </div>
 
                   <div
-                    className={`group relative max-w-[88%] rounded-2xl px-4 py-3 text-white transition-all ${
+                    className={`group relative max-w-[88%] rounded-2xl px-4 py-3 text-white ${
                       isUser
                         ? "bg-gradient-to-r from-emerald-dark to-emerald text-white rounded-br-none shadow-lg shadow-emerald/10"
                         : "border border-white/10 bg-background/80 rounded-bl-none text-white/90"
@@ -353,7 +353,7 @@ export default function AICopilotWidget() {
                       <button
                         type="button"
                         onClick={() => handleCopy(message.text, message.id)}
-                        className="mt-2 flex items-center gap-1 text-[11px] text-muted transition-colors hover:text-emerald"
+                        className="mt-2 flex items-center gap-1 text-[11px] text-muted hover:text-emerald"
                       >
                         <span>{copiedId === message.id ? "✓ Copied" : "📋 Copy"}</span>
                       </button>
@@ -392,7 +392,7 @@ export default function AICopilotWidget() {
                   type="button"
                   onClick={() => void handleSendMessage(prompt)}
                   disabled={isThinking}
-                  className="whitespace-nowrap rounded-xl border border-white/10 bg-surface/80 px-3 py-1.5 text-muted transition-colors hover:border-emerald/40 hover:bg-emerald/10 hover:text-emerald"
+                  className="whitespace-nowrap rounded-xl border border-white/10 bg-surface/80 px-3 py-1.5 text-muted hover:border-emerald/40 hover:bg-emerald/10 hover:text-emerald"
                 >
                   {prompt}
                 </button>
@@ -419,7 +419,7 @@ export default function AICopilotWidget() {
             <button
               type="submit"
               disabled={!input.trim() || isThinking}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald text-white transition-all hover:bg-emerald-light disabled:opacity-40"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald text-white hover:bg-emerald-light disabled:opacity-40"
               aria-label="Send message"
             >
               ➔

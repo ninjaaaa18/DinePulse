@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import {
@@ -279,7 +280,7 @@ export default function OrderFoodDashboard() {
   return (
     <div className="space-y-6">
       {isProcessing ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
           <div className="animate-fade-in-up w-full max-w-2xl rounded-[32px] border border-emerald/20 bg-surface/95 p-6 shadow-2xl shadow-emerald/10 sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-xl">
@@ -307,7 +308,7 @@ export default function OrderFoodDashboard() {
                     fill="none"
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeOffset}
-                    className="transition-all duration-500"
+                    className="transition-[stroke-dashoffset] duration-500"
                   />
                   <defs>
                     <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -331,7 +332,7 @@ export default function OrderFoodDashboard() {
                 return (
                   <div
                     key={step.label}
-                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition-all duration-500 ${
+                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition-colors duration-300 ${
                       completed
                         ? "border-emerald/20 bg-emerald/10"
                         : active
@@ -426,7 +427,7 @@ export default function OrderFoodDashboard() {
                 key={option.id}
                 type="button"
                 onClick={() => setSelectedRestaurant(option.id)}
-                className={`rounded-[22px] border p-4 text-left transition-all duration-300 ${
+                className={`rounded-[22px] border p-4 text-left transition-transform duration-300 ${
                   active
                     ? "border-emerald/30 bg-emerald/10 shadow-lg shadow-emerald/10"
                     : "border-white/10 bg-background/60 hover:-translate-y-0.5 hover:border-white/20"
@@ -481,13 +482,17 @@ export default function OrderFoodDashboard() {
                   return (
                   <div
                     key={item.id}
-                    className="group overflow-hidden rounded-[24px] border border-white/10 bg-background/60 transition-all duration-300 hover:-translate-y-1 hover:border-emerald/25 hover:shadow-xl hover:shadow-emerald/10"
+                    className="group overflow-hidden rounded-[24px] border border-white/10 bg-background/60 transition-transform duration-300 hover:-translate-y-1 hover:border-emerald/25 hover:shadow-xl"
                   >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    <div className="relative h-44 w-full overflow-hidden">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
 
                     <div className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -534,7 +539,7 @@ export default function OrderFoodDashboard() {
                           variant="primary"
                           size="sm"
                           onClick={() => addToCart(item)}
-                          className="transition-all duration-300 hover:scale-105 active:scale-95"
+                          className="transition-transform duration-300 hover:scale-105 active:scale-95"
                         >
                           Add
                         </Button>
@@ -628,7 +633,7 @@ export default function OrderFoodDashboard() {
               </div>
             </div>
 
-            <Button variant="primary" size="md" onClick={handleProceed} className="w-full transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]">
+            <Button variant="primary" size="md" onClick={handleProceed} className="w-full transition-transform duration-300 hover:scale-[1.01] active:scale-[0.99]">
               Place Order
             </Button>
 
