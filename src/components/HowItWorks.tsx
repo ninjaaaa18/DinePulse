@@ -28,9 +28,13 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="relative px-6 py-24 md:py-32">
+    <section id="how-it-works" className="relative px-6 py-24 md:py-32 overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute top-1/2 left-1/2 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald/5 blur-[100px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-emerald/[0.03] via-transparent to-emerald/[0.02]" />
+        <div className="absolute inset-0 bg-grid opacity-50" />
+        <div className="absolute top-1/3 right-0 h-[500px] w-[500px] rounded-full bg-emerald/15 blur-[140px] animate-glow-drift" />
+        <div className="absolute bottom-0 left-1/4 h-[400px] w-[400px] rounded-full bg-cyan-500/10 blur-[120px] animate-float" />
+        <div className="absolute top-1/2 left-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald/10 blur-[100px] animate-breathe" />
       </div>
 
       <div className="relative mx-auto max-w-6xl">
@@ -50,7 +54,7 @@ export default function HowItWorks() {
         <div className="mt-16 hidden lg:block">
           <div className="relative flex items-start justify-between">
             <div
-              className="absolute top-10 right-[10%] left-[10%] h-px bg-gradient-to-r from-transparent via-emerald/40 to-transparent"
+              className="absolute top-10 right-[8%] left-[8%] h-0.5 bg-gradient-to-r from-transparent via-emerald/50 to-transparent shadow-[0_0_8px_rgba(16,185,129,0.3)]"
               aria-hidden="true"
             />
             {steps.map((step, index) => (
@@ -58,16 +62,18 @@ export default function HowItWorks() {
                 key={step.title}
                 className="group relative flex w-[18%] flex-col items-center text-center"
               >
-                <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-2xl border border-white/10 bg-surface text-3xl transition-all duration-300 group-hover:-translate-y-1 group-hover:border-emerald/30 group-hover:shadow-lg group-hover:shadow-emerald/10">
-                  {step.icon}
+                <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-2xl border border-white/[0.12] bg-surface text-4xl shadow-xl shadow-black/20 ring-1 ring-white/[0.04] transition-all duration-500 group-hover:-translate-y-2 group-hover:border-emerald/40 group-hover:shadow-2xl group-hover:shadow-emerald/20 group-hover:ring-emerald/20">
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                  <div className="pointer-events-none absolute -inset-2 rounded-3xl bg-emerald/20 blur-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true" />
+                  <span className="relative">{step.icon}</span>
                 </div>
-                <span className="mt-3 text-xs font-medium text-emerald">
+                <span className="mt-4 text-xs font-semibold uppercase tracking-wider text-emerald">
                   Step {index + 1}
                 </span>
-                <h3 className="mt-1 text-sm font-semibold text-white">
+                <h3 className="mt-2 text-base font-semibold text-white transition-colors duration-300 group-hover:text-emerald-light">
                   {step.title}
                 </h3>
-                <p className="mt-2 text-xs leading-relaxed text-muted">
+                <p className="mt-2 text-sm leading-relaxed text-muted">
                   {step.description}
                 </p>
               </div>
@@ -79,21 +85,23 @@ export default function HowItWorks() {
           {steps.map((step, index) => (
             <article
               key={step.title}
-              className="group flex items-start gap-4 rounded-2xl border border-white/5 bg-surface p-5 transition-all duration-300 hover:border-emerald/20 hover:bg-surface-hover"
+              className="group relative flex items-start gap-5 rounded-2xl border border-white/[0.06] bg-surface p-6 shadow-lg shadow-black/10 transition-all duration-500 hover:-translate-y-1 hover:border-emerald/30 hover:shadow-xl hover:shadow-emerald/10 overflow-hidden"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald/10 text-xl">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald/[0.02] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true" />
+              <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-emerald/15 blur-[60px] opacity-0 transition-opacity duration-500 group-hover:opacity-100" aria-hidden="true" />
+              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald/[0.12] text-2xl shadow-inner shadow-emerald/5 transition-all duration-500 group-hover:scale-110 group-hover:bg-emerald/20 group-hover:shadow-lg group-hover:shadow-emerald/10">
                 {step.icon}
               </div>
-              <div>
-                <span className="text-xs font-medium text-emerald">
+              <div className="relative">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald">
                   Step {index + 1}
                 </span>
-                <h3 className="font-semibold text-white">{step.title}</h3>
+                <h3 className="font-semibold text-white transition-colors duration-300 group-hover:text-emerald-light">{step.title}</h3>
                 <p className="mt-1 text-sm text-muted">{step.description}</p>
               </div>
               {index < steps.length - 1 && (
                 <span
-                  className="ml-auto hidden self-center text-emerald/40 sm:block"
+                  className="ml-auto hidden self-center text-emerald/50 sm:block"
                   aria-hidden="true"
                 >
                   →

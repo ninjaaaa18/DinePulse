@@ -65,12 +65,16 @@ export default function DashboardLayout({ children }: Props) {
     <NotificationProvider>
       <ActiveOrderProvider>
         <ToastProvider>
-        <div className="flex min-h-screen bg-background">
+        <div className="relative flex min-h-screen bg-background">
+          <div className="pointer-events-none fixed inset-0 bg-grid opacity-50" aria-hidden="true" />
+          <div className="pointer-events-none fixed top-0 left-1/2 h-[700px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald/[0.12] blur-[180px] animate-glow-pulse" aria-hidden="true" />
+          <div className="pointer-events-none fixed bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-emerald/10 blur-[140px] animate-glow-drift" aria-hidden="true" />
+          <div className="pointer-events-none fixed top-1/2 left-0 h-[400px] w-[400px] -translate-y-1/2 rounded-full bg-cyan-500/8 blur-[120px] animate-float" aria-hidden="true" />
           <Sidebar
             mobileOpen={mobileOpen}
             onMobileClose={() => setMobileOpen(false)}
           />
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="relative flex min-w-0 flex-1 flex-col">
             <DashboardNavbar onMenuToggle={() => setMobileOpen(true)} />
             <main className="flex-1 overflow-y-auto p-4 sm:p-6 animate-fade-in-up">{children}</main>
           </div>

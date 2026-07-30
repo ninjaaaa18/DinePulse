@@ -10,23 +10,24 @@ type Props = {
 export default function AuthLayout({ children, title, subtitle }: Props) {
   return (
     <div className="flex min-h-screen">
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-surface p-12 lg:flex">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-surface to-background p-12 lg:flex">
+        <div className="pointer-events-none absolute inset-0 bg-grid opacity-50" aria-hidden="true" />
+        <Link href="/" className="relative z-10 flex items-center gap-2 text-lg font-semibold text-white">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald text-sm">
             🍽️
           </span>
           DinePulse
         </Link>
 
-        <div className="relative flex flex-1 items-center justify-center">
+        <div className="relative z-10 flex flex-1 items-center justify-center">
           <div
             className="absolute inset-0 animate-pulse-glow"
             aria-hidden="true"
           >
-            <div className="absolute top-1/2 left-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald/15 blur-[100px]" />
+            <div className="absolute top-1/2 left-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald/20 blur-[140px]" />
           </div>
           <div className="relative text-center">
-            <div className="mx-auto flex h-48 w-48 items-center justify-center rounded-3xl border border-white/10 bg-white/5 text-7xl backdrop-blur-sm">
+            <div className="mx-auto flex h-48 w-48 items-center justify-center rounded-3xl border border-white/[0.12] bg-glass text-7xl shadow-2xl shadow-black/20">
               🍽️
             </div>
             <p className="mt-8 text-xl font-medium text-white">
@@ -39,7 +40,7 @@ export default function AuthLayout({ children, title, subtitle }: Props) {
           </div>
         </div>
 
-        <p className="text-sm text-muted">
+        <p className="relative z-10 text-sm text-muted">
           Trusted by 500+ restaurants worldwide
         </p>
       </div>

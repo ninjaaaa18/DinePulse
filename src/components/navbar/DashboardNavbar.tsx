@@ -26,7 +26,7 @@ export default function DashboardNavbar({ onMenuToggle }: Props) {
     "User";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-white/5 bg-background/80 px-4 backdrop-blur-xl sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-white/[0.06] bg-glass px-4 shadow-lg shadow-black/10 sm:px-6">
       <button
         type="button"
         className="flex h-10 w-10 items-center justify-center rounded-xl text-white transition-colors hover:bg-white/5 lg:hidden"

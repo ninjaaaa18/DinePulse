@@ -30,9 +30,9 @@ export default function StatCard({
   icon,
 }: Props) {
   return (
-    <Card hover>
+    <Card hover className="space-y-1">
       <div className="flex items-start justify-between">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald/10 text-xl">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald/[0.12] text-xl shadow-inner shadow-emerald/5 transition-all duration-300 group-hover:bg-emerald/20 group-hover:shadow-lg group-hover:shadow-emerald/10">
           {icon}
         </div>
         {change && (
@@ -43,8 +43,8 @@ export default function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-4 text-sm text-muted">{title}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight text-white">{value}</p>
+      <p className="mt-3 text-sm text-muted">{title}</p>
+      <p className="text-2xl font-bold tracking-tight text-white">{value}</p>
     </Card>
   );
 }

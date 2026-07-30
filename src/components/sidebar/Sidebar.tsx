@@ -43,12 +43,13 @@ export default function Sidebar({ mobileOpen, onMobileClose }: Props) {
       )}
 
       <aside
-        className={`fixed top-0 left-0 z-50 flex h-full flex-col border-r border-white/5 bg-surface transition-all duration-300 lg:static lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 flex h-full flex-col border-r border-white/[0.06] bg-surface/95 backdrop-blur-xl shadow-xl shadow-black/20 transition-all duration-300 lg:static lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "w-[72px]" : "w-64"}`}
       >
+        <div className="pointer-events-none absolute inset-0 bg-grid-sm opacity-30" aria-hidden="true" />
         <div
-          className={`flex h-16 items-center border-b border-white/5 px-4 ${
+          className={`relative flex h-16 items-center border-b border-white/5 px-4 ${
             collapsed ? "justify-center" : "gap-2"
           }`}
         >

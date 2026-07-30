@@ -16,6 +16,7 @@ import {
   type MenuItem,
   type Restaurant,
 } from "@/lib/supabase";
+import RestaurantHeroImage from "@/components/ui/RestaurantHeroImage";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
 
@@ -377,6 +378,34 @@ export default function OrderFoodDashboard() {
           Pick a restaurant, build your basket, and place your order.
         </p>
       </header>
+
+      <div className="relative h-48 overflow-hidden rounded-2xl sm:h-56">
+        <RestaurantHeroImage
+          cuisine={restaurant.cuisine}
+          name={restaurant.name}
+          size="banner"
+          className="h-full w-full"
+        />
+        <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-1">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface/80 text-2xl shadow-lg backdrop-blur-sm">
+              {restaurant.logo}
+            </span>
+            <div>
+              <h2 className="text-2xl font-bold text-white drop-shadow-lg">{restaurant.name}</h2>
+              <p className="text-sm text-white/80 drop-shadow">{restaurant.cuisine}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 mt-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald/20 px-3 py-1 text-xs font-medium text-emerald-light backdrop-blur-sm">
+              🕒 {restaurant.deliveryTime}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
+              {restaurant.healthScore ?? 90}% health score
+            </span>
+          </div>
+        </div>
+      </div>
 
       <Card hover className="space-y-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">

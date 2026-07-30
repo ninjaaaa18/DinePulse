@@ -13,7 +13,11 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/5 bg-surface/50">
+    <footer className="relative overflow-hidden bg-gradient-to-b from-surface/50 to-surface/30">
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald/40 to-transparent shadow-[0_0_12px_rgba(16,185,129,0.3)]" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 bg-grid-sm opacity-40" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-emerald/10 blur-[120px] animate-float" aria-hidden="true" />
+      <div className="pointer-events-none absolute -top-20 -right-20 h-60 w-60 rounded-full bg-cyan-500/8 blur-[100px] animate-glow-drift" aria-hidden="true" />
       <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-12 md:grid-cols-3">
           <div>
@@ -60,7 +64,7 @@ export default function Footer() {
                   key={social.label}
                   href={social.href}
                   aria-label={social.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-sm text-muted transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald/30 hover:bg-emerald/10 hover:text-white"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.12] bg-white/[0.04] text-sm text-muted shadow-lg shadow-black/10 transition-all duration-300 hover:-translate-y-1 hover:border-emerald/40 hover:bg-emerald/15 hover:text-emerald-light hover:shadow-xl hover:shadow-emerald/10"
                 >
                   {social.icon}
                 </a>

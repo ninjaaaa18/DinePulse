@@ -270,20 +270,24 @@ export default function AICopilotWidget() {
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label="Toggle AI Restaurant Manager Copilot"
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald/30 bg-gradient-to-br from-emerald/90 to-emerald-dark p-0.5 text-white shadow-2xl shadow-emerald/30 transition-all duration-300 hover:scale-105 active:scale-95 sm:h-15 sm:w-15"
+        className="group fixed bottom-6 right-6 z-40 flex h-15 w-15 items-center justify-center rounded-2xl border border-emerald/40 bg-gradient-to-br from-emerald via-emerald-dark to-emerald p-0.5 text-white shadow-2xl shadow-emerald/40 transition-all duration-500 hover:scale-110 hover:shadow-3xl hover:shadow-emerald/50 active:scale-95 sm:h-16 sm:w-16"
       >
-        <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-surface/40 backdrop-blur-md">
+        <div className="absolute inset-0 rounded-2xl bg-emerald/30 blur-2xl transition-all duration-500 opacity-0 group-hover:opacity-100 group-hover:scale-150" aria-hidden="true" />
+        <div className="relative flex h-full w-full items-center justify-center rounded-[14px] bg-surface/20 backdrop-blur-lg">
           <span className="text-2xl animate-pulse">✦</span>
         </div>
-        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+        <span className="absolute -top-1 -right-1 flex h-4 w-4">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-light opacity-75" />
-          <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-emerald" />
+          <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald" />
         </span>
       </button>
 
       {/* Floating AI Chat Drawer Modal */}
       {isOpen ? (
-        <div className="fixed bottom-24 right-4 z-50 flex h-[620px] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border border-emerald/20 bg-surface/95 shadow-2xl shadow-emerald/15 backdrop-blur-2xl transition-all duration-300 sm:right-6 sm:w-[440px]">
+        <div className="fixed bottom-24 right-4 z-50 flex h-[620px] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border border-emerald/25 bg-surface/95 shadow-3xl shadow-emerald/25 backdrop-blur-2xl transition-all duration-300 sm:right-6 sm:w-[440px]">
+          <div className="pointer-events-none absolute inset-0 bg-grid-sm opacity-30" aria-hidden="true" />
+          <div className="pointer-events-none absolute -top-40 -right-40 h-80 w-80 rounded-full bg-emerald/15 blur-[120px] animate-glow-pulse" aria-hidden="true" />
+          <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px] animate-float" aria-hidden="true" />
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 bg-background/50 px-5 py-4">
             <div className="flex items-center gap-3">
