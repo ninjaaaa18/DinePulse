@@ -3,6 +3,8 @@ import type {
   RestaurantRow,
   RestaurantInsert,
   RestaurantUpdate,
+  PartnerApplicationRow,
+  PartnerApplicationInsert,
   MenuItemRow,
   MenuItemInsert,
   MenuItemUpdate,
@@ -341,6 +343,47 @@ export async function markNotificationAsRead(id: string): Promise<{ data: Notifi
   const { data, error } = await supabase
     .from("notifications")
     .update({ is_read: true, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  return { data, error };
+}
+
+// ==================== PARTNER APPLICATIONS ====================
+
+export async function createPartnerApplication(
+  application: PartnerApplicationInsert
+): Promise<{ data: PartnerApplicationRow | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from("partner_applications")
+    .insert(application)
+    .select()
+    .single();
+  return { data, error };
+}
+
+export async function getPartnerApplicationByUserId(
+  userId: string
+): Promise<{ data: PartnerApplicationRow | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from("partner_applications")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return { data, error };
+}
+
+export async function updatePartnerApplicationStatus(
+  id: string,
+  status: PartnerApplicationRow["status"]
+): Promise<{ data: PartnerApplicationRow | null; error: Error | null }> {
+  const updates: Partial<PartnerApplicationRow> = {
+    status,
+    reviewed_at: status !== "pending_review" ? new Date().toISOString() : undefined,
+  };
+  const { data, error } = await supabase
+    .from("partner_applications")
+    .update(updates)
     .eq("id", id)
     .select()
     .single();

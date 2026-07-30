@@ -69,6 +69,12 @@ export type Database = {
         Update: ProfileUpdate;
         Relationships: [];
       };
+      partner_applications: {
+        Row: PartnerApplicationRow;
+        Insert: PartnerApplicationInsert;
+        Update: PartnerApplicationUpdate;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -556,6 +562,50 @@ export type ProfileInsert = {
 export type ProfileUpdate = {
   id?: string;
   role?: "owner" | "customer";
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PartnerApplicationStatus = "pending_review" | "approved" | "rejected";
+
+export type PartnerApplicationRow = {
+  id: string;
+  user_id: string;
+  status: PartnerApplicationStatus;
+  restaurant_name: string;
+  description: string | null;
+  cuisine: string | null;
+  address: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PartnerApplicationInsert = {
+  id?: string;
+  user_id: string;
+  status?: PartnerApplicationStatus;
+  restaurant_name: string;
+  description?: string | null;
+  cuisine?: string | null;
+  address?: string | null;
+  submitted_at?: string;
+  reviewed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PartnerApplicationUpdate = {
+  id?: string;
+  user_id?: string;
+  status?: PartnerApplicationStatus;
+  restaurant_name?: string;
+  description?: string | null;
+  cuisine?: string | null;
+  address?: string | null;
+  submitted_at?: string;
+  reviewed_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };

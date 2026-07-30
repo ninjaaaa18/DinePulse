@@ -6,6 +6,7 @@ import Sidebar from "@/components/sidebar/Sidebar";
 import DashboardNavbar from "@/components/navbar/DashboardNavbar";
 import { ActiveOrderProvider } from "@/components/dashboard/ActiveOrderProvider";
 import { NotificationProvider } from "@/components/dashboard/NotificationProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import AICopilotWidget from "@/components/dashboard/AICopilotWidget";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getRedirectForUnauthorizedPath } from "@/lib/roleRoutes";
@@ -63,6 +64,7 @@ export default function DashboardLayout({ children }: Props) {
   return (
     <NotificationProvider>
       <ActiveOrderProvider>
+        <ToastProvider>
         <div className="flex min-h-screen bg-background">
           <Sidebar
             mobileOpen={mobileOpen}
@@ -74,6 +76,7 @@ export default function DashboardLayout({ children }: Props) {
           </div>
           {role === "owner" ? <AICopilotWidget /> : null}
         </div>
+        </ToastProvider>
       </ActiveOrderProvider>
     </NotificationProvider>
   );

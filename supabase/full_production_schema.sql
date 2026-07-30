@@ -181,7 +181,26 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 12. TRIGGERS
+-- 12. PARTNER APPLICATIONS TABLE
+CREATE TABLE IF NOT EXISTS public.partner_applications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending_review',
+    restaurant_name TEXT NOT NULL,
+    description TEXT,
+    cuisine TEXT,
+    address TEXT,
+    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_user_application UNIQUE (user_id)
+);
+
+DROP TRIGGER IF EXISTS update_partner_applications_updated_at ON public.partner_applications;
+CREATE TRIGGER update_partner_applications_updated_at BEFORE UPDATE ON public.partner_applications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 13. TRIGGERS
 DROP TRIGGER IF EXISTS update_restaurants_updated_at ON public.restaurants;
 CREATE TRIGGER update_restaurants_updated_at BEFORE UPDATE ON public.restaurants FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -206,7 +225,10 @@ CREATE TRIGGER update_analytics_updated_at BEFORE UPDATE ON public.analytics FOR
 DROP TRIGGER IF EXISTS update_notifications_updated_at ON public.notifications;
 CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- 13. INDEXES
+CREATE INDEX IF NOT EXISTS idx_partner_applications_user_id ON public.partner_applications(user_id);
+CREATE INDEX IF NOT EXISTS idx_partner_applications_status ON public.partner_applications(status);
+
+-- 14. INDEXES
 CREATE INDEX IF NOT EXISTS idx_restaurants_slug ON public.restaurants(slug);
 CREATE INDEX IF NOT EXISTS idx_restaurants_user_id ON public.restaurants(user_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant_id ON public.menu_items(restaurant_id);
@@ -229,7 +251,8 @@ CREATE INDEX IF NOT EXISTS idx_notifications_customer_id ON public.notifications
 CREATE INDEX IF NOT EXISTS idx_notifications_restaurant_id ON public.notifications(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.notifications(is_read);
 
--- 14. ROW LEVEL SECURITY (RLS) & POLICIES
+-- 15. ROW LEVEL SECURITY (RLS) & POLICIES
+ALTER TABLE public.partner_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.restaurants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.menu_items ENABLE ROW LEVEL SECURITY;
@@ -293,3 +316,8 @@ CREATE POLICY "Allow user manage notifications" ON public.notifications FOR ALL 
     OR restaurant_id IS NULL 
     OR auth.role() = 'anon'
 );
+
+DROP POLICY IF EXISTS "Allow user manage own application" ON public.partner_applications;
+DROP POLICY IF EXISTS "Allow admin manage applications" ON public.partner_applications;
+CREATE POLICY "Allow user manage own application" ON public.partner_applications FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Allow admin manage applications" ON public.partner_applications FOR ALL USING (auth.role() = 'service_role');

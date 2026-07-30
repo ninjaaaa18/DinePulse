@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import Avatar from "@/components/ui/Avatar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useNotifications } from "@/components/dashboard/NotificationProvider";
-import { updateRestaurant, upsertRestaurant } from "@/lib/supabase";
+import { useToast } from "@/components/ui/Toast";
+import { updateRestaurant, createPartnerApplication, getPartnerApplicationByUserId } from "@/lib/supabase";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { getDefaultPathForRole } from "@/lib/roleRoutes";
 import { getRoleIcon, getRoleLabel, saveUserRole } from "@/lib/userRole";
 import type { UserRole } from "@/lib/userRole";
+import type { PartnerApplicationRow, PartnerApplicationStatus } from "@/lib/supabase/types";
 
 function ToggleSwitch({ checked, onChange, label, detail }: { checked: boolean; onChange: () => void; label: string; detail: string }) {
   return (
@@ -130,7 +132,64 @@ function RoleSwitchSection({ currentRole, onSwitch }: { currentRole: UserRole; o
   );
 }
 
-function BecomeRestaurantOwnerCard({ user, onSuccess }: { user: NonNullable<ReturnType<typeof useAuth>["user"]>; onSuccess: () => void }) {
+function ApplicationStatusCard({ application }: { application: PartnerApplicationRow }) {
+  const statusColors: Record<PartnerApplicationStatus, string> = {
+    pending_review: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+    approved: "border-emerald/30 bg-emerald/10 text-emerald-light",
+    rejected: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+  };
+
+  const statusLabels: Record<PartnerApplicationStatus, string> = {
+    pending_review: "Pending Review",
+    approved: "Approved",
+    rejected: "Rejected",
+  };
+
+  const statusIcons: Record<PartnerApplicationStatus, string> = {
+    pending_review: "⏳",
+    approved: "✅",
+    rejected: "❌",
+  };
+
+  const formattedDate = new Date(application.submitted_at).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  return (
+    <Card className="relative overflow-hidden">
+      <div className="space-y-5">
+        <div className={`flex h-16 w-16 items-center justify-center rounded-2xl text-3xl ${
+          application.status === "pending_review" ? "bg-amber-500/20" :
+          application.status === "approved" ? "bg-emerald/20" : "bg-rose-500/20"
+        }`}>
+          {statusIcons[application.status]}
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Application Status</h2>
+          <p className="mt-1 text-sm text-muted">{application.restaurant_name}</p>
+        </div>
+        <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${statusColors[application.status]}`}>
+          <span>{statusIcons[application.status]}</span>
+          <span>{statusLabels[application.status]}</span>
+        </div>
+        <div className="space-y-2 text-sm text-muted">
+          <p>Submitted: {formattedDate}</p>
+          {application.cuisine ? <p>Cuisine: {application.cuisine}</p> : null}
+          {application.address ? <p>Location: {application.address}</p> : null}
+        </div>
+        {application.status === "pending_review" ? (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-200/80">
+            Our team will review your application and notify you once approved.
+          </div>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
+function PartnerApplicationSection({ user, onRefresh }: { user: NonNullable<ReturnType<typeof useAuth>["user"]>; onRefresh: () => void }) {
   const [showModal, setShowModal] = useState(false);
   const [restaurantName, setRestaurantName] = useState("");
   const [description, setDescription] = useState("");
@@ -138,8 +197,7 @@ function BecomeRestaurantOwnerCard({ user, onSuccess }: { user: NonNullable<Retu
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { refreshRestaurant } = useAuth();
-  const { notify } = useNotifications();
+  const { toast } = useToast();
 
   async function handleSubmit() {
     if (!restaurantName.trim()) { setError("Restaurant name is required."); return; }
@@ -147,31 +205,19 @@ function BecomeRestaurantOwnerCard({ user, onSuccess }: { user: NonNullable<Retu
     setError(null);
 
     try {
-      const slug = restaurantName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const { data: created, error: createErr } = await upsertRestaurant({
+      const { error: createErr } = await createPartnerApplication({
         user_id: user.id,
-        name: restaurantName.trim(),
-        slug,
+        restaurant_name: restaurantName.trim(),
         description: description.trim() || null,
         cuisine: category.trim() || null,
         address: address.trim() || null,
-        email: user.email ?? undefined,
-        is_active: true,
+        status: "pending_review",
       });
 
-      if (createErr || !created) throw new Error(createErr?.message || "Failed to create restaurant.");
+      if (createErr) throw new Error(createErr.message || "Failed to submit application.");
 
-      await saveUserRole(user.id, "owner");
-      await refreshRestaurant();
-      notify({
-        icon: "🚀",
-        title: "Restaurant Created!",
-        description: `${restaurantName} is now live. Redirecting to your dashboard...`,
-        category: "Orders",
-        severity: "success",
-        dedupeKey: `restaurant-created-${Date.now()}`,
-      });
-      onSuccess();
+      toast("Application submitted successfully.", "success");
+      onRefresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -297,7 +343,7 @@ function BecomeRestaurantOwnerCard({ user, onSuccess }: { user: NonNullable<Retu
                 Cancel
               </Button>
               <Button type="button" variant="primary" onClick={() => void handleSubmit()} disabled={submitting} className="flex-1 rounded-xl">
-                {submitting ? "Creating..." : "Create Restaurant"}
+                {submitting ? "Submitting..." : "Submit Application"}
               </Button>
             </div>
           </div>
@@ -308,13 +354,32 @@ function BecomeRestaurantOwnerCard({ user, onSuccess }: { user: NonNullable<Retu
 }
 
 function CustomerSettings() {
-  const { user, signOut, setRole } = useAuth();
+  const { user, signOut, setRole, refreshRestaurant } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [promoAlerts, setPromoAlerts] = useState(false);
   const [dietaryPrefs, setDietaryPrefs] = useState("");
   const [allergies, setAllergies] = useState("");
+  const [application, setApplication] = useState<PartnerApplicationRow | null>(null);
+  const [appLoading, setAppLoading] = useState(true);
+
+  const loadApplication = useCallback(async () => {
+    if (!user) return;
+    setAppLoading(true);
+    try {
+      const { data } = await getPartnerApplicationByUserId(user.id);
+      setApplication(data);
+    } catch {
+      setApplication(null);
+    } finally {
+      setAppLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadApplication();
+  }, [loadApplication]);
 
   useEffect(() => {
     try {
@@ -342,6 +407,18 @@ function CustomerSettings() {
     if (!user) return;
     await setRole(nextRole);
     router.replace(getDefaultPathForRole(nextRole));
+  }
+
+  async function handleApprovedSwitch() {
+    if (!user) return;
+    if (!application) return;
+    try {
+      await saveUserRole(user.id, "owner");
+      await refreshRestaurant();
+      router.replace("/dashboard");
+    } catch {
+      // handle error silently
+    }
   }
 
   return (
@@ -443,13 +520,46 @@ function CustomerSettings() {
           </div>
         </Card>
 
-        <BecomeRestaurantOwnerCard
-          user={user!}
-          onSuccess={() => router.replace("/dashboard")}
-        />
+        {appLoading ? (
+          <Card className="flex h-64 items-center justify-center">
+            <div className="flex items-center gap-3 text-emerald">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald border-t-transparent" />
+              <span className="text-sm font-medium">Loading...</span>
+            </div>
+          </Card>
+        ) : application ? (
+          <ApplicationStatusCard application={application} />
+        ) : (
+          <PartnerApplicationSection
+            user={user!}
+            onRefresh={() => {
+              loadApplication();
+              router.refresh();
+            }}
+          />
+        )}
       </div>
 
       <RoleSwitchSection currentRole="customer" onSwitch={handleRoleSwitch} />
+
+      {application?.status === "approved" ? (
+        <div className="rounded-2xl border border-emerald/20 bg-emerald/5 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-emerald-light">Your application has been approved</p>
+              <p className="text-xs text-muted mt-1">You can now switch to Restaurant Owner mode to start managing your restaurant.</p>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => void handleApprovedSwitch()}
+              className="rounded-xl whitespace-nowrap"
+            >
+              Switch to Owner Mode
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-surface p-6">
         <div>
