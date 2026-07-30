@@ -16,6 +16,7 @@ const CUSTOMER_PATHS = new Set([
   "/dashboard/order-food",
   "/dashboard/my-orders",
   "/dashboard/customer-health",
+  "/dashboard/health-challenges",
   "/dashboard/allergy-safety",
   "/dashboard/settings",
 ]);

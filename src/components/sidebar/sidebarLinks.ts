@@ -14,6 +14,7 @@ export const sidebarLinks: SidebarLink[] = [
   { label: "Order Food", href: "/dashboard/order-food", icon: "🍽️", roles: ["customer"] },
   { label: "My Orders", href: "/dashboard/my-orders", icon: "📋", roles: ["customer"] },
   { label: "Customer Health", href: "/dashboard/customer-health", icon: "🥗", roles: ["customer"] },
+  { label: "Health Challenges", href: "/dashboard/health-challenges", icon: "🏆", roles: ["customer"] },
   { label: "Allergy Safety", href: "/dashboard/allergy-safety", icon: "🛡️", roles: ["customer"] },
   { label: "Inventory", href: "/dashboard/inventory", icon: "📦", roles: ["owner"] },
   { label: "Analytics", href: "/dashboard/analytics", icon: "📈", roles: ["owner"] },
