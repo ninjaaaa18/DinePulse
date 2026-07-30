@@ -2,6 +2,7 @@ import type { UserRole } from "./userRole";
 
 const OWNER_PATHS = new Set([
   "/dashboard",
+  "/dashboard/orders",
   "/dashboard/inventory",
   "/dashboard/analytics",
   "/dashboard/restaurant-health",

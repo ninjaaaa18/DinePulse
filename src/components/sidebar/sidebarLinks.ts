@@ -10,6 +10,7 @@ export type SidebarLink = {
 export const sidebarLinks: SidebarLink[] = [
   { label: "Home", href: "/dashboard", icon: "🏠", roles: ["customer"] },
   { label: "Dashboard", href: "/dashboard", icon: "📊", roles: ["owner"] },
+  { label: "Orders", href: "/dashboard/orders", icon: "📋", roles: ["owner"] },
   { label: "Browse Restaurants", href: "/dashboard/browse-restaurants", icon: "🔍", roles: ["customer"] },
   { label: "Order Food", href: "/dashboard/order-food", icon: "🍽️", roles: ["customer"] },
   { label: "My Orders", href: "/dashboard/my-orders", icon: "📋", roles: ["customer"] },

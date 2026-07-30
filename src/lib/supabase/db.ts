@@ -119,6 +119,15 @@ export async function getCustomerById(id: string): Promise<{ data: CustomerRow |
   return { data, error };
 }
 
+export async function getCustomerByUserId(userId: string): Promise<{ data: CustomerRow | null; error: Error | null }> {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return { data, error };
+}
+
 export async function getCustomerByEmail(email: string): Promise<{ data: CustomerRow | null; error: Error | null }> {
   const { data, error } = await supabase
     .from("customers")

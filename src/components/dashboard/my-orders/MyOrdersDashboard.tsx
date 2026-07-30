@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Card from "@/components/cards/Card";
 import Button from "@/components/ui/Button";
 import { useActiveOrder } from "@/components/dashboard/ActiveOrderProvider";
-import { getOrders } from "@/lib/supabase";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { getCustomerByUserId, getOrCreateCustomerForUser, getOrders, updateOrderStatus } from "@/lib/supabase";
 import type { OrderRow } from "@/lib/supabase/types";
 
 function formatPrice(value: number) {
@@ -15,8 +16,10 @@ function formatPrice(value: number) {
 const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: "Pending", color: "border-amber/20 bg-amber/10 text-amber" },
   accepted: { label: "Accepted", color: "border-sky/20 bg-sky/10 text-sky" },
+  preparing: { label: "Preparing", color: "border-indigo/20 bg-indigo/10 text-indigo" },
+  ready: { label: "Ready", color: "border-emerald/20 bg-emerald/10 text-emerald" },
   completed: { label: "Completed", color: "border-emerald/20 bg-emerald/10 text-emerald" },
-  rejected: { label: "Rejected", color: "border-rose/20 bg-rose/10 text-rose" },
+  cancelled: { label: "Cancelled", color: "border-rose/20 bg-rose/10 text-rose" },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -28,23 +31,71 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const statusMessages: Record<string, string> = {
+  pending: "Awaiting restaurant confirmation",
+  accepted: "Restaurant has accepted your order",
+  preparing: "Your food is being prepared",
+  ready: "Your order is ready!",
+  completed: "Delivered",
+  cancelled: "Order cancelled",
+};
+
 export default function MyOrdersDashboard() {
   const { activeOrder } = useActiveOrder();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+    const currentUser = user;
+    let mounted = true;
+    async function init() {
+      const { data: existing } = await getCustomerByUserId(currentUser.id);
+      if (existing) {
+        if (mounted) setCustomerId(existing.id);
+        return;
+      }
+      const { data: created } = await getOrCreateCustomerForUser(currentUser);
+      if (created && mounted) setCustomerId(created.id);
+    }
+    init();
+    return () => { mounted = false; };
+  }, [user]);
+
+  const loadOrders = useCallback(async () => {
+    if (!customerId) return;
+    const { data } = await getOrders({ customerId });
+    if (data) setOrders(data);
+  }, [customerId]);
+
+  useEffect(() => {
+    if (!customerId) return;
     let mounted = true;
     async function load() {
-      const { data } = await getOrders();
-      if (mounted) {
-        setOrders(data ?? []);
-        setLoading(false);
-      }
+      setLoading(true);
+      await loadOrders();
+      if (mounted) setLoading(false);
     }
     load();
     return () => { mounted = false; };
-  }, []);
+  }, [customerId, loadOrders]);
+
+  useEffect(() => {
+    if (!customerId) return;
+    const interval = setInterval(loadOrders, 5000);
+    return () => clearInterval(interval);
+  }, [customerId, loadOrders]);
+
+  const activeOrderId = activeOrder?.orderId;
+  const matchedOrder = orders.find((o) => o.id === activeOrderId);
+  const activeStatus = matchedOrder?.status || (activeOrderId ? "pending" : null);
+
+  const handleCancelOrder = async (orderId: string) => {
+    await updateOrderStatus(orderId, "cancelled");
+    loadOrders();
+  };
 
   return (
     <div className="space-y-6">
@@ -60,7 +111,7 @@ export default function MyOrdersDashboard() {
         </p>
       </header>
 
-      {activeOrder ? (
+      {activeOrder && activeStatus ? (
         <Card hover className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -72,7 +123,7 @@ export default function MyOrdersDashboard() {
               </h2>
               <p className="text-sm text-muted">{activeOrder.restaurantCuisine}</p>
             </div>
-            <StatusBadge status="pending" />
+            <StatusBadge status={activeStatus} />
           </div>
 
           <div className="space-y-2">
@@ -108,22 +159,26 @@ export default function MyOrdersDashboard() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Link href="/dashboard/customer-health">
-              <Button type="button" variant="secondary" className="rounded-xl">
-                Customer Health
-              </Button>
-            </Link>
-            <Link href="/dashboard/allergy-safety">
-              <Button type="button" variant="secondary" className="rounded-xl">
-                Allergy Safety
-              </Button>
-            </Link>
-            <Link href="/dashboard/order-food">
-              <Button type="button" variant="primary" className="rounded-xl">
-                Modify Order
-              </Button>
-            </Link>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted">
+              {statusMessages[activeStatus] || activeStatus}
+            </p>
+            <div className="flex gap-2">
+              {activeStatus === "pending" && matchedOrder ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleCancelOrder(matchedOrder.id)}
+                >
+                  Cancel Order
+                </Button>
+              ) : null}
+              <Link href="/dashboard/order-food">
+                <Button variant="primary" size="sm">
+                  Modify Order
+                </Button>
+              </Link>
+            </div>
           </div>
         </Card>
       ) : null}
@@ -179,18 +234,16 @@ export default function MyOrdersDashboard() {
                   </div>
                   <StatusBadge status={order.status} />
                 </div>
-                <p className="text-sm text-muted">{order.notes || `${order.total_calories ?? "—"} kcal`}</p>
+                <p className="text-sm text-muted">
+                  {order.notes?.replace(/^Order placed for /, "") || `${order.total_calories ?? "—"} kcal`}
+                </p>
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-bold text-white">
                     {formatPrice(order.total_amount)}
                   </span>
-                  {order.status === "pending" ? (
-                    <span className="text-xs text-amber">Awaiting restaurant confirmation</span>
-                  ) : order.status === "accepted" ? (
-                    <span className="text-xs text-sky">Being prepared</span>
-                  ) : order.status === "completed" ? (
-                    <span className="text-xs text-emerald">Delivered</span>
-                  ) : null}
+                  <span className="text-xs text-muted">
+                    {statusMessages[order.status] || order.status}
+                  </span>
                 </div>
               </Card>
             ))}

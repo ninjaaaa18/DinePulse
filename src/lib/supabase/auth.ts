@@ -1,6 +1,6 @@
 import { supabase } from "./client";
-import { upsertRestaurant } from "./db";
-import type { RestaurantRow } from "./types";
+import { upsertRestaurant, upsertCustomer } from "./db";
+import type { CustomerRow, RestaurantRow } from "./types";
 import type { User } from "@supabase/supabase-js";
 
 /**
@@ -79,6 +79,49 @@ export async function getOrCreateRestaurantForUser(
     const { data: created, error: createErr } = await upsertRestaurant(newRestaurant);
     if (createErr) {
       console.warn("[Auth Sync] Failed to create restaurant profile:", createErr.message);
+      return { data: null, error: new Error(createErr.message) };
+    }
+
+    return { data: created, error: null };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    return { data: null, error };
+  }
+}
+
+/**
+ * Ensures an authenticated user has a linked Customer profile.
+ * Automatically creates one if it does not exist yet.
+ */
+export async function getOrCreateCustomerForUser(
+  user: User
+): Promise<{ data: CustomerRow | null; error: Error | null }> {
+  try {
+    const { data: existing } = await supabase
+      .from("customers")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      return { data: existing, error: null };
+    }
+
+    const displayName =
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email?.split("@")[0] ||
+      "Customer";
+
+    const newCustomer = {
+      user_id: user.id,
+      name: displayName,
+      email: user.email || `${user.id}@dinepulse.app`,
+    };
+
+    const { data: created, error: createErr } = await upsertCustomer(newCustomer);
+    if (createErr) {
+      console.warn("[Auth Sync] Failed to create customer profile:", createErr.message);
       return { data: null, error: new Error(createErr.message) };
     }
 

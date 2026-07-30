@@ -30,10 +30,28 @@ export async function saveOrderToSupabase(
 
     let restaurantId: string | null = context.selectedRestaurantId || null;
 
+    // Look up the logged-in user's customer record to set customer_id
+    let customerId: string | null = null;
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
+      if (authUser?.user) {
+        const { data: customerRecord } = await supabase
+          .from("customers")
+          .select("id, name")
+          .eq("user_id", authUser.user.id)
+          .maybeSingle();
+        if (customerRecord) {
+          customerId = customerRecord.id;
+        }
+      }
+    } catch {
+      // Non-blocking — customer_id is optional in the schema
+    }
+
     const orderPayload: OrderInsert = {
       id: orderId,
       order_number: orderNumber,
-      customer_id: null,
+      customer_id: customerId,
       restaurant_id: restaurantId,
       status: "pending",
       subtotal: context.subtotal,
