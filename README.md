@@ -91,6 +91,10 @@ Unlike traditional restaurant management systems, DinePulse leverages **Google G
 | Health Challenges | Gamified wellness goals with streak tracking |
 | Order History | View past orders with status tracking |
 
+> 🧪 **Beta:**  
+> **Activity Rewards** – Google Health Connect integration is planned for future releases.  
+> **Health Challenges** – Community competitions and social challenge features are under development.
+
 ### 🏪 Restaurant Owner Features
 
 | Feature | Description |
@@ -108,6 +112,9 @@ Unlike traditional restaurant management systems, DinePulse leverages **Google G
 | Action Plan Generator | Auto-generated action items from predictions |
 | Partner Application | Restaurant partnership workflow with status tracking |
 | Settings Management | Profile, restaurant settings, and preferences |
+
+> 🧪 **Beta:**  
+> **Restaurant Partner Application** – Restaurant owners can submit applications. Admin approval/review workflow is currently under development.
 
 ### 🤖 AI Features
 
